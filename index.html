@@ -90,6 +90,19 @@
 
   .log{font-size:11px;color:var(--muted);margin-top:6px;max-height:120px;overflow:auto}.log div{padding:2px 0;border-bottom:1px solid #122036}
   .center{text-align:center}.big{font-size:24px;font-weight:800;margin:8px 0}.tip{color:var(--muted);font-size:12px;margin-top:8px}
+
+  /* MODALES */
+  .modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.95);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
+  .modal-content{background:var(--panel);border:1px solid var(--line);border-radius:20px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;padding:20px}
+  .modal-content h2{color:var(--accent);margin-top:0}
+  .modal-content h3{color:var(--info);font-size:16px;margin:15px 0 8px}
+  .modal-content hr{border-color:var(--line);margin:12px 0}
+  .modal-close{background:var(--accent);color:#1a1206;border:none;border-radius:12px;padding:12px;font-weight:700;cursor:pointer;width:100%;margin-top:16px}
+  .rating{display:flex;gap:8px;justify-content:center;margin:10px 0}
+  .star{cursor:pointer;font-size:28px;color:var(--muted);transition:color 0.1s}
+  .star.selected{color:var(--warn)}
+  .feedback-input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--txt);font-family:inherit;margin:8px 0}
+  .feedback-input:focus{outline:none;border-color:var(--accent)}
 </style>
 </head>
 <body>
@@ -101,10 +114,8 @@
 
 <script>
 /* ════════════════════════════════════════════════════════════════════════
-   FREIGHT FORWARDER — "El Escritorio"  ·  v2 (flujo paso a paso + narrativa)
-   La LÓGICA es la misma de v1.2 (float, riesgo, personalidades, capacidad).
-   Lo que cambia: la UI ahora es un FLUJO de pantallas, una cosa a la vez:
-     consulta → cotizar → respuesta.  Y cada carga trae CONTEXTO/HISTORIA.
+   FREIGHT FORWARDER — "El Escritorio"  ·  v2
+   Con botón de reglas (solo reglas) y feedback automático a los 5 minutos
    ════════════════════════════════════════════════════════════════════════ */
 const $=id=>document.getElementById(id);
 const clamp01=x=>Math.max(0,Math.min(1,x));
@@ -118,7 +129,7 @@ const PERSONAS={
   apurado:  {key:"apurado",nombre:"El Apurado",emoji:"⏰",priceSens:30,urgency:90,serviceVal:60,maxRounds:2,concession:0.15,angerThreshold:5,targetMult:1.30,prefTerm:0,hints:["Tiene mucha urgencia.","Cada día de demora le cuesta plata."]},
   confiable:{key:"confiable",nombre:"El Confiable",emoji:"🤝",priceSens:40,urgency:30,serviceVal:75,maxRounds:3,concession:0.10,angerThreshold:6,targetMult:1.18,prefTerm:30,hints:["Parece un cliente serio.","Valora el buen servicio."]},
 };
-// ── Cargas con CONTEXTO/HISTORIA (de los 10 ejemplos reales) ────────────
+// ── Cargas con CONTEXTO/HISTORIA ────────────────────────────────────────
 const CARGOS=[
   {co:"Bodega Los Andes",op:"Exportación",merc:"Vinos (reefer)",desc:"3x40'HC",ruta:"Mendoza → Miami",modo:"maritimo",costo:5200,urgente:false,
    historia:"“Exportamos a Miami hace tres años. La cosecha salió excelente y el importador ya tiene los pedidos. Necesitamos que llegue en condiciones.”",motivo:"Cumplir con su importador de siempre."},
@@ -149,12 +160,187 @@ const LOSE={competidor:"“Me fui con otro forwarder, me hizo mejor número.”"
   paciencia:"“Me cansé de dar vueltas. Lo dejo acá.”",enojo:"“Así no se puede negociar. Chau.”"};
 
 let G;
+let feedbackTimeout = null; 
+let feedbackShown = false; 
+
+// ========== MODAL DE REGLAS (SOLO REGLAS, SIN ENCUESTA) ==========
+function openRules(){
+  const modalDiv = document.createElement('div');
+  modalDiv.className = 'modal';
+  modalDiv.id = 'rulesModal';
+  modalDiv.innerHTML = `
+    <div class="modal-content">
+      <h2>📋 Reglas del Juego</h2>
+      <p><strong>Freight Forwarder — El Escritorio</strong><br>Vendés servicios de logística. Cada cliente es un desafío distinto.</p>
+      
+      <h3>🎯 Cómo jugar</h3>
+      <p>1. Te llega una consulta con historia y contexto.<br>
+      2. Armás una cotización: precio, plazo de pago, modo de transporte.<br>
+      3. Podés usar tácticas para mejorar tus chances.<br>
+      4. Enviás → el cliente acepta, contraoferta o se va.<br>
+      5. Si cierras, la operación entra en tu cartera → cobrás más adelante (según plazo).<br>
+      6. Los gastos del mes se descuentan cada 30 días. ¡Cuidá la caja!</p>
+      
+      <h3>💰 Recursos</h3>
+      <p><strong>Caja:</strong> tu dinero disponible. Si llega a cero, perdés.<br>
+      <strong>Reputación ⭐:</strong> afecta qué clientes te llegan y el plazo que te da el proveedor.<br>
+      <strong>Capacidad:</strong> podés manejar hasta ${G?.capacity || 4} operaciones simultáneas.</p>
+      
+      <h3>🕵️ Tipos de cliente (ocultos)</h3>
+      <p>🐀 <strong>El Rata:</strong> solo le importa el precio. Plazos largos le gustan. Difícil de convencer con valor agregado.<br>
+      ⏰ <strong>El Apurado:</strong> necesita todo YA. La urgencia es su debilidad. Podés negociar mejor precio si le resolvés rápido.<br>
+      🤝 <strong>El Confiable:</strong> valora el servicio y la confianza. Un buen trato puede cerrar aunque no seas el más barato.</p>
+      <p><em>💡 Pistas: durante la negociación aparecen frases que revelan qué tipo es.</em></p>
+      
+      <h3>⚔️ Tácticas</h3>
+      <p><strong>⏱️ Presión de tiempo:</strong> funciona con el Apurado, enfurece al Rata.<br>
+      <strong>⭐ Argumento de valor:</strong> funciona con el Confiable, al Rata le da igual.<br>
+      <strong>💵 Pago anticipado:</strong> das descuento a cambio de cobrar ya. Siempre reduce riesgo.</p>
+      
+      <h3>📊 Gestión financiera</h3>
+      <p>• Le pagás al proveedor en <strong>${G?.supplierTerm || 15} días</strong> (mejora con reputación).<br>
+      • Cobrás al cliente según el plazo que acordaste.<br>
+      • Si cobrás después de pagar, ponés plata de tu bolsillo en el medio → riesgo de caja.</p>
+      
+      <h3>🎓 Consejos</h3>
+      <p>• No todas las cargas hay que tomarlas. A veces pasar es inteligente.<br>
+      • Los plazos de pago largos ayudan a cerrar pero duelen en tu caja.<br>
+      • El margen muy bajo (menos de 12%) te expone a que cualquier problema te deje en rojo.<br>
+      • Leé las historias: dan pistas sobre la personalidad.</p>
+      
+      <button id="closeRules" class="modal-close">Cerrar</button>
+    </div>
+  `;
+  document.body.appendChild(modalDiv);
+  modalDiv.querySelector('#closeRules').addEventListener('click', () => modalDiv.remove());
+  modalDiv.addEventListener('click', (e) => { if(e.target === modalDiv) modalDiv.remove(); });
+}
+
+// ========== MODAL DE FEEDBACK (SOLO ENCUESTA, SIN REGLAS) ==========
+function showFeedbackModal(){
+  if(feedbackShown) return;
+  feedbackShown = true;
+  if(feedbackTimeout) clearTimeout(feedbackTimeout);
+  
+  const modalDiv = document.createElement('div');
+  modalDiv.className = 'modal';
+  modalDiv.id = 'feedbackModal';
+  modalDiv.innerHTML = `
+    <div class="modal-content">
+      <h2>📝 Tu opinión importa</h2>
+      <p><strong>¡Gracias por jugar Freight Forwarder!</strong><br>Llevás ${Math.floor((Date.now() - G.startTime)/60000)} minutos jugando. Ayudanos a mejorar el juego con tu feedback.</p>
+      
+      <div id="feedbackForm">
+        <label>Tu nombre o alias:</label>
+        <input type="text" id="feedbackName" class="feedback-input" placeholder="Ej: Juan, Forwarder777">
+        
+        <label>¿Qué puntuación le das?</label>
+        <div class="rating" id="ratingStars">
+          <span class="star" data-val="1">☆</span>
+          <span class="star" data-val="2">☆</span>
+          <span class="star" data-val="3">☆</span>
+          <span class="star" data-val="4">☆</span>
+          <span class="star" data-val="5">☆</span>
+        </div>
+        <input type="hidden" id="feedbackRating" value="0">
+        
+        <label>¿Volverías a jugar?</label>
+        <div class="seg" style="margin:5px 0">
+          <button type="button" id="yesAgain" style="flex:1">✅ Sí</button>
+          <button type="button" id="noAgain" style="flex:1">❌ No</button>
+          <button type="button" id="maybeAgain" style="flex:1">🤔 Tal vez</button>
+        </div>
+        <input type="hidden" id="feedbackAgain" value="">
+        
+        <label>Comentarios (qué te gustó, qué cambiarías):</label>
+        <textarea id="feedbackComments" rows="4" class="feedback-input" placeholder="Me pareció... El Rata es muy difícil... Agregaría..."></textarea>
+        
+        <button id="submitFeedback" class="modal-close">📤 Enviar feedback</button>
+      </div>
+      <button id="closeFeedback" class="modal-close" style="background:var(--panel2);color:var(--txt);margin-top:8px">Cerrar sin enviar</button>
+    </div>
+  `;
+  document.body.appendChild(modalDiv);
+  
+  // Setup estrellas
+  const stars = modalDiv.querySelectorAll('.star');
+  const ratingInput = modalDiv.querySelector('#feedbackRating');
+  stars.forEach(star => {
+    star.addEventListener('click', () => {
+      const val = parseInt(star.dataset.val);
+      ratingInput.value = val;
+      stars.forEach((s,i) => {
+        if(i < val) s.innerHTML = '★';
+        else s.innerHTML = '☆';
+      });
+    });
+  });
+  
+  // Setup botones de "volvería a jugar"
+  const yesBtn = modalDiv.querySelector('#yesAgain');
+  const noBtn = modalDiv.querySelector('#noAgain');
+  const maybeBtn = modalDiv.querySelector('#maybeAgain');
+  const againInput = modalDiv.querySelector('#feedbackAgain');
+  const resetAgain = () => {
+    [yesBtn, noBtn, maybeBtn].forEach(b => b.style.background = 'var(--panel2)');
+  };
+  yesBtn.addEventListener('click', () => { resetAgain(); yesBtn.style.background = 'var(--good)'; againInput.value = 'Sí'; });
+  noBtn.addEventListener('click', () => { resetAgain(); noBtn.style.background = 'var(--bad)'; againInput.value = 'No'; });
+  maybeBtn.addEventListener('click', () => { resetAgain(); maybeBtn.style.background = 'var(--warn)'; againInput.value = 'Tal vez'; });
+  
+  // Submit feedback
+  modalDiv.querySelector('#submitFeedback').addEventListener('click', () => {
+    const name = modalDiv.querySelector('#feedbackName').value || 'Anónimo';
+    const rating = ratingInput.value;
+    const again = againInput.value;
+    const comments = modalDiv.querySelector('#feedbackComments').value;
+    const minutesPlayed = Math.floor((Date.now() - G.startTime)/60000);
+    const stats = G ? `Día: ${G.day} | Deals cerrados: ${G.deals} | Reputación: ${G.rep} | Caja: ${money(G.cash)} | Minutos jugados: ${minutesPlayed}` : 'No disponible';
+    const feedbackText = `=== FEEDBACK FREIGHT FORWARDER ===
+Jugador: ${name}
+Puntuación: ${rating}/5
+Volvería a jugar: ${again}
+Comentarios: ${comments}
+Estadísticas de la partida: ${stats}
+Fecha: ${new Date().toLocaleString()}
+=====================================`;
+    const blob = new Blob([feedbackText], {type: 'text/plain'});
+    const a = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    a.href = url;
+    a.download = `feedback_ff_escritorio_${name.replace(/[^a-z0-9]/gi,'_')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert('¡Gracias por tu feedback! Se descargó el archivo.');
+    modalDiv.remove();
+  });
+  
+  modalDiv.querySelector('#closeFeedback').addEventListener('click', () => modalDiv.remove());
+  modalDiv.addEventListener('click', (e) => { if(e.target === modalDiv) modalDiv.remove(); });
+}
+
+// ── Inicialización ─────────────────────────────────────────────────────
 function newGame(){
   G={cash:6000,rep:50,day:1,deals:0,lost:0,problems:0,nextMonthly:30,monthly:1500,
-     ops:[],capacity:4,over:false,st:null,tierMsg:50,supplierTerm:15,ui:"consulta"};
+     ops:[],capacity:4,over:false,st:null,tierMsg:50,supplierTerm:15,ui:"consulta",
+     startTime:Date.now()};
+
+  feedbackShown = false;
+  if(feedbackTimeout) clearTimeout(feedbackTimeout);
+  
+  feedbackTimeout = setTimeout(() => {
+    if(!G.over && !feedbackShown) {
+      showFeedbackModal();
+    }
+  }, 300000);
+  
   log("Arrancás solo con "+money(G.cash)+". Gastos del mes: "+money(G.monthly)+". Plazo con proveedor: "+G.supplierTerm+"d.");
   newClient(); render();
 }
+
+// ── Resto de la lógica del juego (igual que antes) ─────────────────────
 function newClient(){
   const persona=pick(Object.values(PERSONAS));
   const base=pick(CARGOS);
@@ -175,7 +361,6 @@ function newClient(){
     clientMsg:base.historia,finished:false,seenDetails:false};
 }
 
-// ── Lógica (idéntica a v1.2) ─────────────────────────────────────────────
 function acceptance(){
   const st=G.st,p=st.persona,costo=st.cargo.costo,target=costo*p.targetMult;
   if(st.price>st.cargo.clientMaxViable) return 0.01;
@@ -269,7 +454,6 @@ function tick(d){ G.day+=d; resolveOps();
 function nextOrEnd(){ tick(Math.round(rnd(2,5))); if(G.cash<0) return gameOver(); newClient(); G.ui="consulta"; render(); }
 function advanceTime(){ tick(Math.round(rnd(3,7))); if(G.cash<0) return gameOver(); render(); }
 
-// ── Helpers de presentación ──────────────────────────────────────────────
 function words(acc,risk,m){
   const comp = acc>0.6?["😀","Buena posibilidad de cierre"]:acc>0.4?["😐","Posible, conviene ajustar"]:["😟","Difícil de cerrar"];
   const rk   = risk<0.2?["🛡️","Riesgo bajo"]:risk<0.4?["🛡️","Riesgo medio"]:["⚠️","Riesgo alto"];
@@ -285,7 +469,6 @@ function advice(st,acc,risk,m){
   return "Precio equilibrado. Podés ajustar el plazo de pago para mejorar tu caja.";
 }
 
-// ── RENDER (router de pantallas) ─────────────────────────────────────────
 function render(){
   renderHud(); if(G.over) return;
   if(G.ui==="ops") return renderOps();
@@ -300,10 +483,10 @@ function renderHud(){
     <div class="cell"><div class="lbl">Reput.</div><div class="val">${G.rep} ⭐</div></div>
     <div class="cell"><div class="lbl">Día</div><div class="val">${G.day}</div></div>
     <div class="cell btn" onclick="openOps()"><div class="lbl">Ops</div><div class="val">${G.ops.length}/${G.capacity}</div></div>
-    <div class="cell ${alert?'alert':''}"><div class="lbl">Gastos ${falta}d</div><div class="val" style="color:${alert?'var(--bad)':'var(--txt)'}">${money(G.monthly)}</div></div>`;
+    <div class="cell ${alert?'alert':''}"><div class="lbl">Gastos ${falta}d</div><div class="val" style="color:${alert?'var(--bad)':'var(--txt)'}">${money(G.monthly)}</div></div>
+    <div class="cell btn" onclick="openRules()"><div class="lbl">❓</div><div class="val" style="font-size:12px">Reglas</div></div>`;
 }
 
-// PASO 1 — NUEVA CONSULTA
 function renderConsulta(){
   const st=G.st,c=st.cargo;
   $("screen").innerHTML=`<div class="card">
@@ -324,7 +507,6 @@ function renderConsulta(){
 }
 function goCotizar(){ G.ui="cotizar"; render(); }
 
-// PASO 2 — ARMANDO COTIZACIÓN
 function renderCotizar(){
   const st=G.st,p=st.persona,c=st.cargo,costo=c.costo;
   const floor=Math.round(costo*1.10),cap=Math.round(costo*1.55);
@@ -390,7 +572,6 @@ function setTransport(mode){const st=G.st,b=st.cargo.costoBase,prev=st.cargo.cos
   st.cargo.clientMaxViable=Math.round(st.cargo.clientMaxViable*(st.cargo.costo/prev));
   st.transport=mode;render();}
 
-// PASO 3 — RESPUESTA DEL CLIENTE (contraoferta)
 function renderRespuesta(){
   const st=G.st,p=st.persona,costo=st.cargo.costo;
   const acc=acceptance();
@@ -425,7 +606,6 @@ function renderRespuesta(){
 }
 function backToCotizar(){ G.ui="cotizar"; render(); }
 
-// Cierre / pérdida (pantallas breves de transición)
 function renderCerrado(){
   const st=G.st,m=(st.price-st.cargo.costo)/st.cargo.costo;
   $("screen").innerHTML=`<div class="card center">
@@ -436,7 +616,7 @@ function renderCerrado(){
       <div class="b"><div class="lbl">Ganancia</div><div class="n" style="color:var(--good)">${money(st.price-st.cargo.costo)}</div></div>
       <div class="b"><div class="lbl">Margen</div><div class="n">${Math.round(m*100)}%</div></div>
     </div>
-    <div class="note"><span class="e">📦</span><span>La operación quedó en curso. Cobrás en ${st.term}d (si todo sale bien). Mirala en “Ops”.</span></div>
+    <div class="note"><span class="e">📦</span><span>La operación quedó en curso. Cobrás en ${st.term}d (si todo sale bien). Mirala en "Ops".</span></div>
     <div class="actions"><button class="b-go" onclick="nextOrEnd()">Siguiente cliente →</button></div>
   </div>`;
 }
@@ -450,7 +630,6 @@ function renderPerdido(){
   </div>`;
 }
 
-// Operaciones en curso (vista aparte, accesible desde el HUD)
 function openOps(){ if(G.over) return; G._back=G.ui; G.ui="ops"; render(); }
 function closeOps(){ G.ui=(G._back&&G._back!=="ops")?G._back:"consulta"; render(); }
 function renderOps(){
@@ -484,7 +663,9 @@ function renderSinCapacidad(){
       <button class="b-no" onclick="openOps()">Ver operaciones</button></div></div>`;
 }
 
-function gameOver(){ G.over=true;
+function gameOver(){ 
+  G.over=true; 
+  if(feedbackTimeout) clearTimeout(feedbackTimeout);
   $("screen").innerHTML=`<div class="card center"><div class="big" style="color:var(--bad)">🏴 BANCARROTA</div>
     <div>Te quedaste sin caja en el día ${G.day}.</div>
     <div class="tip">Cerraste ${G.deals} · ${G.problems} salieron mal · pasaste ${G.lost} · reputación ${G.rep}.</div>
