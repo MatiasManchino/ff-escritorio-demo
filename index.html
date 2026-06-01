@@ -122,28 +122,48 @@ const clamp01=x=>Math.max(0,Math.min(1,x));
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const money=n=>"$"+Math.round(n).toLocaleString("es-AR");
-const FEEDBACK_ENDPOINT = 'https://formsubmit.co/ajax/maximogarcia5757@gmail.com';
 
 function sendFeedbackRemote(entry){
-  const formData = new FormData();
-  formData.append('name', entry.name);
-  formData.append('rating', entry.rating);
-  formData.append('again', entry.again);
-  formData.append('comments', entry.comments);
-  formData.append('stats', entry.stats);
-  formData.append('date', entry.date);
-  formData.append('_subject', 'Feedback Freight Forwarder');
-  formData.append('_captcha', 'false');
-  formData.append('_template', 'table');
-
-  return fetch(FEEDBACK_ENDPOINT, {
-    method: 'POST',
-    body: formData,
-    headers: { 'Accept': 'application/json' }
-  }).then(res => {
-    if (!res.ok) throw new Error('Error al enviar feedback');
-    return res.json();
-  });
+  // 1. Primero, descargar el archivo local (esto siempre funciona)
+  const stats = entry.stats;
+  const feedbackText = `=== FEEDBACK FREIGHT FORWARDER ===
+Jugador: ${entry.name}
+Puntuación: ${entry.rating}/5
+Volvería a jugar: ${entry.again}
+Comentarios: ${entry.comments}
+Estadísticas de la partida: ${stats}
+Fecha: ${entry.date}
+=====================================`;
+  
+  const blob = new Blob([feedbackText], {type: 'text/plain'});
+  const a = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  a.href = url;
+  a.download = `feedback_ff_escritorio_${entry.name.replace(/[^a-z0-9]/gi,'_')}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  const MI_EMAIL = 'maximogarcia5757@gmail.com';
+  // 2. Opcional: abrir el correo del usuario con los datos precargados
+  const subject = encodeURIComponent('Feedback Freight Forwarder');
+  const body = encodeURIComponent(
+    `Nombre: ${entry.name}\n` +
+    `Puntuación: ${entry.rating}/5\n` +
+    `Volvería a jugar: ${entry.again}\n` +
+    `Comentarios: ${entry.comments}\n` +
+    `Estadísticas: ${stats}\n` +
+    `Fecha: ${entry.date}\n\n` +
+    `--- Archivo adjunto: feedback_${entry.name.replace(/[^a-z0-9]/gi,'_')}.txt ---`
+  );
+  
+  // Preguntar si quiere enviar por correo también
+  if(confirm('✅ Feedback guardado localmente. ¿Querés abrir tu correo para enviarlo también?')) {
+    window.location.href = `mailto:${MI_EMAIL}?subject=${subject}&body=${body}`;
+  }
+  
+  alert('¡Gracias por tu feedback! Se descargó el archivo en tu computadora.');
+  return Promise.resolve();
 }
 
 // ── Personalidades (ocultas; se infieren) ───────────────────────────────
