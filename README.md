@@ -1,36 +1,40 @@
 # FF — El Escritorio (v1 de testeo)
 
-Prototipo para **probar si la negociación de Freight Forwarder es divertida**, sin el mapa 3D.
-Es un solo archivo: `index.html`. No necesita instalar nada.
+Prototipo de negociación de Freight Forwarder para probar la experiencia sin el mapa 3D.
+Abre `index.html` en el navegador para jugar.
 
-## Cómo jugar (en la compu)
-Doble-click en **`index.html`** → se abre en el navegador. Listo.
+## Cómo usar este repositorio en GitHub
+- Este repositorio está listo para verse en GitHub como demo web.
+- Busca `index.html` en la raíz y ábrelo localmente para probar la demo.
+- No necesitas instalar nada: basta con abrir el archivo en el navegador.
 
-## Cómo se juega
+## Cómo jugar
 - Llega un cliente con una carga. Vos ves **tu costo de flete**.
 - Movés 3 palancas: **Precio** (nunca por debajo del 10% de margen), **Plazo de pago**, **Transporte**.
 - Podés usar 3 **tácticas**: presión de tiempo, argumento de valor, pago anticipado.
 - La barra **"Interés"** te dice qué tan cerca estás de que acepte.
 - Enviás cotización → el cliente acepta, contraoferta o se va.
-- **Cuidá la caja:** le pagás al proveedor ya, pero al cliente le cobrás según el plazo. Todos los
-  meses pagás gastos fijos. Si la caja se va a 0 → **bancarrota**.
+- **Cuidá la caja:** le pagás al proveedor ya, pero al cliente le cobrás según el plazo. Si la caja se va a 0 → **bancarrota**.
 - Hay 3 tipos de cliente ocultos (Rata, Apurado, Confiable). Vas viendo **pistas** mientras negociás.
 
-> El truco: contra un **Rata** no le ganás bajando el precio (el piso 10% no te deja). Tenés que
-> cerrarlo con plazo de pago, transporte y tácticas. **Ahí está la gracia.**
+> El truco: con un **Rata** no le ganás bajando el precio. Tenés que usar plazo de pago, transporte y
+> tácticas para cerrar la venta.
 
-## Cómo compartirlo con tus amigos
-Cualquiera de estas:
-1. **Hosting gratis (lo más fácil para celular):** subí `index.html` a [Netlify Drop](https://app.netlify.com/drop)
-   o GitHub Pages → te da un link que abrís en cualquier teléfono.
-2. **Misma red WiFi:** en la PC corré `python -m http.server 8000` dentro de esta carpeta y desde el
-   celular entrá a `http://IP-DE-TU-PC:8000`.
-3. **Mandar el archivo:** pasale `index.html` por mail/WhatsApp; lo abren en el navegador del celular.
+## Cómo probarlo localmente
+1. Doble click en `index.html` para abrirlo en el navegador.
+2. O usa un servidor local desde esta carpeta:
+   ```bash
+   python -m http.server 8000
+   ```
+3. Luego abre `http://localhost:8000`.
 
-## Qué mirar cuando lo prueben (esto es lo importante)
+## Qué observar
 - ¿Piden **"una más"** o se aburren?
-- ¿Entienden **qué decisión** es interesante, o solo aprietan "Enviar"?
-- ¿Se siente **distinto** negociar con un Rata vs. un Apurado?
-- ¿La presión de **caja** se siente (cobrar tarde duele)?
+- ¿Entienden cuál es la decisión importante, o solo apretan "Enviar"?
+- ¿Se siente diferente negociar con un Rata vs. un Apurado?
+- ¿La presión de **caja** y los plazos se sienten reales?
 
-Anotá dónde se prenden y dónde se aburren. Con eso ajustamos los números.
+Anotá dónde se prenden y dónde se traban; con eso ajustamos los números.
+
+## Nota de privacidad
+El archivo `feedback_ff_escritorio_juan.txt` es privado y no forma parte del contenido público en GitHub.
