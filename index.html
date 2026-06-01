@@ -347,17 +347,10 @@ function showFeedbackModal(manual=false){
       stats,
       date: new Date().toLocaleString()
     };
-    sendFeedbackRemote(feedbackEntry)
-      .then(() => {
-        alert('¡Opinión enviada! Intentamos enviarla por email.');
-      })
-      .catch(() => {
-        alert('Falló el envío remoto.');
-      })
-      .finally(() => {
-        modalDiv.remove();
-        render();
-      });
+    sendFeedbackRemote(feedbackEntry);
+      modalDiv.remove();
+      render();
+      alert('¡Gracias por tu feedback! Se descargó el archivo.');
   });
 
   modalDiv.querySelector('#closeFeedback').addEventListener('click', () => modalDiv.remove());
