@@ -33,5 +33,3 @@ Anotá dónde se prenden y dónde se traban; con eso ajustamos los números.
 - El feedback se guarda en el navegador como respuestas locales.
 - El HUD muestra cuántas respuestas quedaron guardadas.
 
-## Nota de privacidad
-El archivo `feedback_ff_escritorio_juan.txt` es privado y no forma parte del contenido público en GitHub.
