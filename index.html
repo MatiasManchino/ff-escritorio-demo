@@ -217,8 +217,8 @@ function openRules(){
 }
 
 // ========== MODAL DE FEEDBACK (SOLO ENCUESTA, SIN REGLAS) ==========
-function showFeedbackModal(){
-  if(feedbackShown) return;
+function showFeedbackModal(manual=false){
+  if(feedbackShown && !manual) return;
   feedbackShown = true;
   if(feedbackTimeout) clearTimeout(feedbackTimeout);
   
@@ -484,6 +484,7 @@ function renderHud(){
     <div class="cell"><div class="lbl">Día</div><div class="val">${G.day}</div></div>
     <div class="cell btn" onclick="openOps()"><div class="lbl">Ops</div><div class="val">${G.ops.length}/${G.capacity}</div></div>
     <div class="cell ${alert?'alert':''}"><div class="lbl">Gastos ${falta}d</div><div class="val" style="color:${alert?'var(--bad)':'var(--txt)'}">${money(G.monthly)}</div></div>
+    <div class="cell btn" onclick="showFeedbackModal(true)"><div class="lbl">📝</div><div class="val" style="font-size:12px">Opinar</div></div>
     <div class="cell btn" onclick="openRules()"><div class="lbl">❓</div><div class="val" style="font-size:12px">Reglas</div></div>`;
 }
 
