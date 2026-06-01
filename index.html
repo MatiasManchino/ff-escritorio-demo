@@ -122,30 +122,28 @@ const clamp01=x=>Math.max(0,Math.min(1,x));
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const money=n=>"$"+Math.round(n).toLocaleString("es-AR");
-const FEEDBACK_STORAGE_KEY = 'ff_escritorio_feedback';
+const FEEDBACK_ENDPOINT = 'https://formsubmit.co/ajax/maximogarcia5757@gmail.com';
 
-function getSavedFeedback(){
-  try { return JSON.parse(localStorage.getItem(FEEDBACK_STORAGE_KEY)) || []; }
-  catch (err) { console.warn('Error leyendo feedback guardado', err); return []; }
-}
-function saveFeedbackEntry(entry){
-  const all = getSavedFeedback();
-  all.push(entry);
-  localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(all));
-}
-function getSavedFeedbackCount(){
-  return getSavedFeedback().length;
-}
-function exportSavedFeedback(){
-  const data = getSavedFeedback();
-  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'ff_escritorio_feedback.json';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(a.href);
+function sendFeedbackRemote(entry){
+  const formData = new FormData();
+  formData.append('name', entry.name);
+  formData.append('rating', entry.rating);
+  formData.append('again', entry.again);
+  formData.append('comments', entry.comments);
+  formData.append('stats', entry.stats);
+  formData.append('date', entry.date);
+  formData.append('_subject', 'Feedback Freight Forwarder');
+  formData.append('_captcha', 'false');
+  formData.append('_template', 'table');
+
+  return fetch(FEEDBACK_ENDPOINT, {
+    method: 'POST',
+    body: formData,
+    headers: { 'Accept': 'application/json' }
+  }).then(res => {
+    if (!res.ok) throw new Error('Error al enviar feedback');
+    return res.json();
+  });
 }
 
 // ── Personalidades (ocultas; se infieren) ───────────────────────────────
@@ -329,10 +327,17 @@ function showFeedbackModal(manual=false){
       stats,
       date: new Date().toLocaleString()
     };
-    saveFeedbackEntry(feedbackEntry);
-    alert('¡Gracias por tu feedback! Quedó guardado en esta página.');
-    modalDiv.remove();
-    render();
+    sendFeedbackRemote(feedbackEntry)
+      .then(() => {
+        alert('¡Opinión enviada! Intentamos enviarla por email.');
+      })
+      .catch(() => {
+        alert('Falló el envío remoto.');
+      })
+      .finally(() => {
+        modalDiv.remove();
+        render();
+      });
   });
 
   modalDiv.querySelector('#closeFeedback').addEventListener('click', () => modalDiv.remove());
@@ -499,7 +504,6 @@ function renderHud(){
     <div class="cell"><div class="lbl">Caja</div><div class="val" style="color:${G.cash<G.monthly?'var(--bad)':'var(--good)'}">${money(G.cash)}</div></div>
     <div class="cell"><div class="lbl">Reput.</div><div class="val">${G.rep} ⭐</div></div>
     <div class="cell"><div class="lbl">Día</div><div class="val">${G.day}</div></div>
-    <div class="cell"><div class="lbl">Feedback</div><div class="val">${getSavedFeedbackCount()}</div></div>
     <div class="cell btn" onclick="openOps()"><div class="lbl">Ops</div><div class="val">${G.ops.length}/${G.capacity}</div></div>
     <div class="cell ${alert?'alert':''}"><div class="lbl">Gastos ${falta}d</div><div class="val" style="color:${alert?'var(--bad)':'var(--txt)'}">${money(G.monthly)}</div></div>
     <div class="cell btn" onclick="showFeedbackModal(true)"><div class="lbl">📝</div><div class="val" style="font-size:12px">Opinar</div></div>
