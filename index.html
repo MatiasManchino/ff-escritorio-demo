@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Freight Forwarder — El Escritorio</title>
+<style>
+  :root{--bg:#070d18;--panel:#0f1a2c;--panel2:#16243c;--line:#243650;--txt:#e7eefb;--muted:#8aa0c4;
+        --accent:#ff8a3d;--good:#37d67a;--bad:#ff5d5d;--warn:#ffcf4d;--info:#5db4ff;--violet:#a98bff}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;background:radial-gradient(120% 80% at 50% 0%,#0d1830 0%,#070d18 60%);color:var(--txt);
+       font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:15px;line-height:1.45;min-height:100vh}
+  .wrap{max-width:480px;margin:0 auto;padding:10px 12px 50px}
+
+  /* HUD compacto */
+  .hud{display:flex;gap:7px;margin-bottom:10px}
+  .hud .cell{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 4px;text-align:center}
+  .hud .lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
+  .hud .val{font-size:15px;font-weight:700;margin-top:1px}
+  .hud .cell.alert{background:#2a1212;border-color:#5a2020}
+  .hud .cell.btn{cursor:pointer} .hud .cell.btn:active{transform:scale(.97)}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px;
+        box-shadow:0 8px 30px rgba(0,0,0,.35)}
+  .step{font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .step.violet{color:var(--violet)}
+
+  .cli{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+  .cli .ava{font-size:30px;width:52px;height:52px;display:flex;align-items:center;justify-content:center;background:var(--panel2);border-radius:14px;flex-shrink:0}
+  .cli .nm{font-weight:800;font-size:19px}
+  .cli .tg{font-size:12px;color:var(--info)}
+
+  .rowlist{margin:10px 0}
+  .row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #16233a}
+  .row:last-child{border-bottom:none}
+  .row .ic{font-size:18px;width:26px;text-align:center;flex-shrink:0}
+  .row .k{font-size:11px;color:var(--muted)} .row .v{font-weight:600}
+  .row .rt{margin-left:auto;text-align:right}
+
+  .story{background:#0b1526;border-left:3px solid var(--accent);border-radius:10px;padding:11px 12px;margin:10px 0;font-size:13.5px;font-style:italic;color:#cdd9ee}
+  .story.violet{border-color:var(--violet)}
+  .motiv{font-size:12px;color:var(--warn);margin-top:6px}.motiv::before{content:"🎯 "}
+
+  .big-num{font-size:30px;font-weight:800;letter-spacing:-.5px}
+  .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+
+  .price-box{background:var(--panel2);border-radius:12px;padding:12px;margin:10px 0}
+  .stepper{display:flex;align-items:center;gap:10px;margin:8px 0}
+  .stepper button{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:#0c1726;color:var(--txt);font-size:20px;cursor:pointer}
+  .stepper input{flex:1;accent-color:var(--accent)}
+  .pr-ends{display:flex;justify-content:space-between;font-size:11px;color:var(--muted)}
+
+  .duo{display:flex;gap:10px;margin:8px 0}
+  .duo .b{flex:1;background:var(--panel2);border-radius:12px;padding:10px;text-align:center}
+  .duo .b .n{font-size:18px;font-weight:800;margin-top:2px}
+
+  .analysis{margin:8px 0}
+  .an{display:flex;align-items:center;gap:9px;padding:6px 0;font-size:13px}
+  .an .e{font-size:18px}
+
+  .seg{display:flex;gap:6px;flex-wrap:wrap}
+  .seg button{flex:1;min-width:50px;background:var(--panel2);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:9px 4px;font-size:12px;cursor:pointer}
+  .seg button.on{background:var(--accent);color:#1a1206;border-color:var(--accent);font-weight:700}
+  .seg button .s{display:block;font-size:9px;color:var(--muted);margin-top:1px}
+  .seg button.on .s{color:#5c3a14}
+  .sect-lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 6px}
+
+  .tactics{display:flex;gap:6px;margin:6px 0}
+  .tactics button{flex:1;background:#13203a;border:1px solid var(--line);color:var(--txt);border-radius:9px;padding:9px 4px;font-size:11px;cursor:pointer;line-height:1.2}
+  .tactics button:disabled{opacity:.35;cursor:default}
+
+  .note{display:flex;gap:8px;font-size:12px;background:#0b1526;border-radius:9px;padding:9px;margin:8px 0;color:var(--muted)}
+  .note.warn{background:#241a08;color:var(--warn)} .note .e{flex-shrink:0}
+
+  .summary{display:flex;align-items:center;justify-content:space-around;gap:6px;background:var(--panel2);border-radius:12px;padding:12px;margin:10px 0;text-align:center}
+  .summary .op{font-size:13px;color:var(--muted)} .summary s{text-decoration:none}
+  .summary .sn{font-size:17px;font-weight:800;display:block}
+
+  .actions{display:flex;gap:9px;margin-top:12px}
+  .actions button{flex:1;border:none;border-radius:12px;padding:14px 8px;font-size:14px;font-weight:700;cursor:pointer}
+  .actions button:active{transform:scale(.98)}
+  .b-go{background:var(--accent);color:#1a1206}.b-ok{background:var(--good);color:#06210f}
+  .b-no{background:#21304a;color:var(--txt)}.b-counter{background:var(--warn);color:#2a2206}
+  .b-ghost{background:#1a2740;color:var(--muted);flex:.7}
+
+  .ops-row{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid #16233a;font-size:13px}.ops-row:last-child{border-bottom:none}
+  .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+  .ops-co{flex:1;font-weight:600}.ops-sub{font-size:10px;color:var(--muted);font-weight:400}
+  .ops-amt{color:var(--good);text-align:right}.ops-when{font-size:11px;color:var(--muted);min-width:70px;text-align:right}
+
+  .log{font-size:11px;color:var(--muted);margin-top:6px;max-height:120px;overflow:auto}.log div{padding:2px 0;border-bottom:1px solid #122036}
+  .center{text-align:center}.big{font-size:24px;font-weight:800;margin:8px 0}.tip{color:var(--muted);font-size:12px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hud" id="hud"></div>
+  <div id="screen"></div>
+  <div class="log" id="log"></div>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════════
+   FREIGHT FORWARDER — "El Escritorio"  ·  v2 (flujo paso a paso + narrativa)
+   La LÓGICA es la misma de v1.2 (float, riesgo, personalidades, capacidad).
+   Lo que cambia: la UI ahora es un FLUJO de pantallas, una cosa a la vez:
+     consulta → cotizar → respuesta.  Y cada carga trae CONTEXTO/HISTORIA.
+   ════════════════════════════════════════════════════════════════════════ */
+const $=id=>document.getElementById(id);
+const clamp01=x=>Math.max(0,Math.min(1,x));
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const money=n=>"$"+Math.round(n).toLocaleString("es-AR");
+
+// ── Personalidades (ocultas; se infieren) ───────────────────────────────
+const PERSONAS={
+  rata:     {key:"rata",nombre:"El Rata",emoji:"😒",priceSens:90,urgency:20,serviceVal:10,maxRounds:3,concession:0.06,angerThreshold:6,targetMult:1.05,prefTerm:60,hints:["Solo le importa el número.","De los que lloran el precio."]},
+  apurado:  {key:"apurado",nombre:"El Apurado",emoji:"⏰",priceSens:30,urgency:90,serviceVal:60,maxRounds:2,concession:0.15,angerThreshold:5,targetMult:1.30,prefTerm:0,hints:["Tiene mucha urgencia.","Cada día de demora le cuesta plata."]},
+  confiable:{key:"confiable",nombre:"El Confiable",emoji:"🤝",priceSens:40,urgency:30,serviceVal:75,maxRounds:3,concession:0.10,angerThreshold:6,targetMult:1.18,prefTerm:30,hints:["Parece un cliente serio.","Valora el buen servicio."]},
+};
+// ── Cargas con CONTEXTO/HISTORIA (de los 10 ejemplos reales) ────────────
+const CARGOS=[
+  {co:"Bodega Los Andes",op:"Exportación",merc:"Vinos (reefer)",desc:"3x40'HC",ruta:"Mendoza → Miami",modo:"maritimo",costo:5200,urgente:false,
+   historia:"“Exportamos a Miami hace tres años. La cosecha salió excelente y el importador ya tiene los pedidos. Necesitamos que llegue en condiciones.”",motivo:"Cumplir con su importador de siempre."},
+  {co:"Minera Cerro Grande",op:"Importación",merc:"Repuestos críticos",desc:"850 kg",ruta:"Santiago → Lima",modo:"aereo",costo:4500,urgente:true,
+   historia:"“La mina está PARADA. Perdemos USD 120.000 por día. Necesitamos la pieza hoy, no mañana. El precio es lo de menos.”",motivo:"Frenar una pérdida enorme por día."},
+  {co:"AgroServicios SRL",op:"Importación",merc:"Cosechadora 12,5 t",desc:"Sobredimensionada",ruta:"Córdoba → Río Cuarto",modo:"terrestre",costo:2835,urgente:false,
+   historia:"“Compré la cosechadora más grande de mi vida. La necesito en el campo antes de la cosecha, pero no me sobra un peso. Ya me cotizaron más barato.”",motivo:"Llegar a la cosecha sin gastar de más."},
+  {co:"Estudio Varela",op:"Importación",merc:"Muebles de diseño",desc:"18 CBM",ruta:"Milano → Buenos Aires",modo:"maritimo",costo:5800,urgente:false,
+   historia:"“Importo muebles italianos para un showroom que abre en 6 semanas. Son la pieza central. Busco un servicio premium, no el precio más bajo.”",motivo:"Que las piezas lleguen perfectas y a tiempo."},
+  {co:"Flores del Valle",op:"Exportación",merc:"Rosas (cadena de frío)",desc:"1.800 kg",ruta:"Medellín → Miami",modo:"aereo",costo:2900,urgente:true,
+   historia:"“Exportamos flores perecederas dos veces por semana. Si se corta la cadena de frío, es pérdida total. Quiero precio fijo todo el año.”",motivo:"Que la flor llegue fresca, sí o sí."},
+  {co:"TechSur S.A.",op:"Importación",merc:"Electrónica",desc:"2x40'HC",ruta:"Shanghái → Buenos Aires",modo:"maritimo",costo:5600,urgente:false,
+   historia:"“Necesitamos importar esta carga. Es una operación importante para nosotros y estamos evaluando varias propuestas.”",motivo:"Conseguir la mejor relación precio/servicio."},
+  {co:"Pesquera Austral",op:"Exportación",merc:"Langostinos premium",desc:"900 kg",ruta:"Trelew → Madrid",modo:"aereo",costo:3400,urgente:true,
+   historia:"“El restaurante de Madrid paga por la frescura. Si demora, el langostino pierde valor y nosotros el cliente. La velocidad lo es todo.”",motivo:"Mantener al comprador exigente de Madrid."},
+  {co:"Importadora Norte",op:"Importación",merc:"Repuestos de auto",desc:"1x40'",ruta:"Busan → Valparaíso",modo:"maritimo",costo:2600,urgente:false,
+   historia:"“Traemos repuestos todos los meses. Conozco los números del rubro mejor que vos. No me vas a vender humo.”",motivo:"Pagar lo justo, ni un peso más."},
+];
+
+const FRASES={
+  caro:["Tu precio está muy arriba.","Tengo ofertas más competitivas.","¿Es tu mejor precio?"],
+  compara:["Otra empresa me pasó más barato.","Estoy evaluando opciones.","Convenceme de elegirte."],
+  apura:["Necesito respuesta hoy.","La carga sale esta semana.","Cada día me cuesta plata."],
+  cerca:["Estamos cerca.","Sólo una pequeña mejora.","Si resolvés esto, avanzamos."],
+};
+const LOSE={competidor:"“Me fui con otro forwarder, me hizo mejor número.”",
+  negocio:"“A ese precio no me cierra el negocio. No hago la operación.”",
+  paciencia:"“Me cansé de dar vueltas. Lo dejo acá.”",enojo:"“Así no se puede negociar. Chau.”"};
+
+let G;
+function newGame(){
+  G={cash:6000,rep:50,day:1,deals:0,lost:0,problems:0,nextMonthly:30,monthly:1500,
+     ops:[],capacity:4,over:false,st:null,tierMsg:50,supplierTerm:15,ui:"consulta"};
+  log("Arrancás solo con "+money(G.cash)+". Gastos del mes: "+money(G.monthly)+". Plazo con proveedor: "+G.supplierTerm+"d.");
+  newClient(); render();
+}
+function newClient(){
+  const persona=pick(Object.values(PERSONAS));
+  const base=pick(CARGOS);
+  const scale=1+(G.rep-50)/120;
+  let costo=Math.round(base.costo*scale*rnd(0.9,1.15));
+  let market="normal",flavor="",isVolume=false;
+  const r=Math.random();
+  if(r<0.18){market="barata";costo=Math.round(costo*0.78);flavor="🟢 Conseguiste una tarifa baja del proveedor: podés ser barato y ganar bien.";}
+  else if(r<0.40){market="cara";costo=Math.round(costo*1.28);flavor="🔴 Temporada alta: el flete está caro, va a costar cerrar.";}
+  else if(r<0.55){isVolume=true;costo=Math.round(costo*2.4);flavor="🔵 Contrato de VOLUMEN: mucha plata, pero quiere poco margen y te ocupa capacidad.";}
+  let viableMult = isVolume?rnd(1.10,1.18) : market==="cara"?rnd(1.06,1.22) : rnd(1.12,1.45);
+  if(Math.random()<0.15) viableMult=rnd(1.02,1.11);
+  const clientMaxViable=Math.round(costo*viableMult);
+  G.st={persona,cargo:{...base,costo,costoBase:costo,clientMaxViable,unwinnable:clientMaxViable<Math.round(costo*1.10),market,isVolume},
+    flavor,price:Math.round(costo*1.18),term:persona.prefTerm===0?0:30,transport:base.modo,round:0,anger:0,
+    satisfaction:Math.max(15,Math.min(85,40+Math.round((G.rep-50)*0.4))),revealed:[],
+    tactics:{tiempo:false,valor:false,anticipo:false},tacticBonus:0,counter:null,counterTerm:null,
+    clientMsg:base.historia,finished:false,seenDetails:false};
+}
+
+// ── Lógica (idéntica a v1.2) ─────────────────────────────────────────────
+function acceptance(){
+  const st=G.st,p=st.persona,costo=st.cargo.costo,target=costo*p.targetMult;
+  if(st.price>st.cargo.clientMaxViable) return 0.01;
+  let acc=0.25;
+  if(st.price<=target) acc+=0.30*(1-st.price/target);
+  else acc-=(p.priceSens/100)*Math.min((st.price-target)/target,0.5)*1.2;
+  acc+=(st.term/60)*0.10; acc-=Math.abs(st.term-p.prefTerm)/60*0.12;
+  if(st.transport==="aereo") acc+=p.urgency>60?0.16:-0.08;
+  acc+=(st.satisfaction/100)*0.15; acc-=st.anger*0.04; acc+=st.tacticBonus;
+  return clamp01(acc);
+}
+function estimateRisk(st){
+  const m=(st.price-st.cargo.costo)/st.cargo.costo;
+  let ops=0.08; if(m<0.15) ops+=0.18; else if(m<0.22) ops+=0.08;
+  ops+=st.persona.key==="rata"?0.12:st.persona.key==="apurado"?0.05:-0.04;
+  if(st.cargo.urgente) ops+=0.10; ops+=(1-st.satisfaction/100)*0.10;
+  ops=clamp01(Math.max(0.02,ops));
+  let pay=st.term>0?(st.persona.key==="rata"?0.13:0.04)*(0.5+st.term/60):0;
+  return {ops,pay:clamp01(pay),total:clamp01(ops+clamp01(pay))};
+}
+function nextTerm(t){const L=[0,15,30,45,60];const i=L.indexOf(t);return i<0?15:L[Math.min(i+1,L.length-1)];}
+
+function sendQuote(){
+  const st=G.st; if(st.finished) return;
+  st.round++;
+  if(st.price>st.cargo.clientMaxViable){
+    st.counter=null;st.counterTerm=null;st.clientMsg=LOSE.negocio; revealHint();
+    if(st.round>=st.persona.maxRounds) return loseDeal(LOSE.paciencia);
+    G.ui="respuesta"; return render();
+  }
+  const acc=acceptance();
+  if(Math.random()<acc) return closeDeal(true);
+  if(st.round>=st.persona.maxRounds){
+    if(Math.random()<acc*0.6) return closeDeal(true);
+    return loseDeal(LOSE.competidor);
+  }
+  const floor=st.cargo.costo*1.10,target=st.cargo.costo*st.persona.targetMult;
+  st.counter=null;st.counterTerm=null;
+  if(st.price>target){
+    const cp=Math.round(Math.max(floor,target,st.price*(1-st.persona.concession)));
+    if(cp<st.price&&cp<=st.cargo.clientMaxViable) st.counter=cp;
+  }
+  if(st.counter===null&&st.term<st.persona.prefTerm) st.counterTerm=Math.min(st.persona.prefTerm,nextTerm(st.term));
+  let pool=acc>0.45?FRASES.cerca:st.persona.urgency>60?FRASES.apura:FRASES.compara;
+  let pedido=st.counter?" Te lo tomo a "+money(st.counter)+".":st.counterTerm!=null?" El precio me cierra, pero pagame a "+st.counterTerm+" días.":"";
+  st.clientMsg="“"+pick(pool)+pedido+"”"; revealHint();
+  if(st.anger>=st.persona.angerThreshold) return loseDeal(LOSE.enojo);
+  G.ui="respuesta"; render();
+}
+function acceptCounter(){const st=G.st; if(st.finished||(st.counter==null&&st.counterTerm==null)) return;
+  if(st.counter!=null) st.price=st.counter; if(st.counterTerm!=null) st.term=st.counterTerm; closeDeal(true);}
+function useTactic(t){
+  const st=G.st,p=st.persona; if(st.finished||st.tactics[t]) return; st.tactics[t]=true;
+  if(t==="tiempo"){ if(p.urgency>60){st.tacticBonus+=0.18;flash("Presión de tiempo: le picó la urgencia.");}
+                    else {st.tacticBonus-=0.12;st.anger++;flash("Presión de tiempo: no tenía apuro, se MOLESTÓ.");} }
+  if(t==="valor"){ if(p.serviceVal>50){st.tacticBonus+=0.15;st.satisfaction=Math.min(100,st.satisfaction+8);flash("Argumento de valor: lo valoró.");}
+                   else flash("Argumento de valor: a este cliente le importa el número, no sirvió."); }
+  if(t==="anticipo"){ const floor=st.cargo.costo*1.10,nuevo=Math.max(floor,Math.round(st.price*0.92));
+                      const bajo=st.price-nuevo; st.price=nuevo; st.term=0; st.tacticBonus+=0.10;
+                      flash("Pago anticipado: das "+money(bajo)+" de descuento a cambio de cobrar ya y sin riesgo de no-pago."); }
+  render();
+}
+function rejectClient(){ if(!G.st.finished){ G.lost++; log("Rechazaste/pasaste a "+G.st.cargo.co+"."); nextOrEnd(); } }
+
+function closeDeal(){
+  const st=G.st; st.finished=true; const m=(st.price-st.cargo.costo)/st.cargo.costo; G.deals++;
+  const risk=estimateRisk(st);
+  const payDay=G.day+st.term+Math.round(rnd(0,3)), costDay=G.day+Math.min(G.supplierTerm,st.term);
+  G.ops.push({co:st.cargo.co,price:st.price,costo:st.cargo.costo,risk,payDay,costDay,costPaid:false});
+  log("✅ Cerraste "+st.cargo.co+" a "+money(st.price)+" (margen "+Math.round(m*100)+"%). Cobrás en "+st.term+"d · pagás proveedor en "+Math.min(G.supplierTerm,st.term)+"d.");
+  G.ui="cerrado"; render();
+}
+function loseDeal(msg){const st=G.st; st.finished=true; G.lost++; G.rep=Math.max(0,G.rep-1); st.clientMsg=msg; G.ui="perdido"; log("❌ Perdiste a "+st.cargo.co+"."); render();}
+
+function resolveOps(){
+  for(const o of G.ops) if(!o.costPaid&&G.day>=o.costDay){o.costPaid=true;G.cash-=o.costo;log("⬇ Pagaste al proveedor "+money(o.costo)+" ("+o.co+").");}
+  const due=G.ops.filter(o=>G.day>=o.payDay); G.ops=G.ops.filter(o=>G.day<o.payDay);
+  for(const o of due){
+    if(!o.costPaid){o.costPaid=true;G.cash-=o.costo;}
+    if(Math.random()<o.risk.pay){G.problems++;G.rep=Math.max(0,G.rep-4);log("🟥 "+o.co+" NO PAGÓ. Perdiste "+money(o.costo)+".");}
+    else if(Math.random()<o.risk.ops){const ex=Math.round((o.price-o.costo)*rnd(0.5,1.4));G.cash+=o.price-ex;G.problems++;G.rep=Math.max(0,G.rep-2);log("🟧 Problema en "+o.co+": costo extra "+money(ex)+".");}
+    else {G.cash+=o.price;G.rep=Math.min(100,G.rep+1);log("💰 "+o.co+" pagó "+money(o.price)+". OK.");}
+  }
+}
+function tick(d){ G.day+=d; resolveOps();
+  while(G.day>=G.nextMonthly){ G.cash-=G.monthly; log("🧾 Gastos del mes: -"+money(G.monthly)); G.monthly=Math.round(G.monthly*1.04); G.nextMonthly+=30; }
+  if(G.rep>=G.tierMsg+10){ G.tierMsg+=10;
+    if(G.supplierTerm<45){G.supplierTerm+=15;log("⭐ Reputación arriba: el proveedor te estiró el plazo a "+G.supplierTerm+"d. Más aire de caja.");}
+    else log("⭐ Reputación arriba: llegan clientes y cargas más grandes."); }
+}
+function nextOrEnd(){ tick(Math.round(rnd(2,5))); if(G.cash<0) return gameOver(); newClient(); G.ui="consulta"; render(); }
+function advanceTime(){ tick(Math.round(rnd(3,7))); if(G.cash<0) return gameOver(); render(); }
+
+// ── Helpers de presentación ──────────────────────────────────────────────
+function words(acc,risk,m){
+  const comp = acc>0.6?["😀","Buena posibilidad de cierre"]:acc>0.4?["😐","Posible, conviene ajustar"]:["😟","Difícil de cerrar"];
+  const rk   = risk<0.2?["🛡️","Riesgo bajo"]:risk<0.4?["🛡️","Riesgo medio"]:["⚠️","Riesgo alto"];
+  const rent = m<0.12?["📉","Margen al límite"]:m<0.25?["📈","Margen aceptable"]:["💎","Margen alto"];
+  return {comp,rk,rent};
+}
+function advice(st,acc,risk,m){
+  if(st.price>st.cargo.clientMaxViable) return "A este precio no le cierra el negocio. Bajá o pasá.";
+  if(acc<0.4 && st.persona.urgency>60) return "Tiene urgencia: probá aéreo o presión de tiempo.";
+  if(acc<0.4) return "Está caro para el cliente. Bajá el precio o mejorá el plazo.";
+  if(m<0.13) return "Margen muy fino: un problema operativo te lo come. Cobrá un poco más si podés.";
+  if(risk>0.4) return "Riesgo alto: pedí contado para no arriesgar el cobro.";
+  return "Precio equilibrado. Podés ajustar el plazo de pago para mejorar tu caja.";
+}
+
+// ── RENDER (router de pantallas) ─────────────────────────────────────────
+function render(){
+  renderHud(); if(G.over) return;
+  if(G.ui==="ops") return renderOps();
+  if(G.ops.length>=G.capacity && (G.ui==="consulta")) return renderSinCapacidad();
+  const fn={consulta:renderConsulta,cotizar:renderCotizar,respuesta:renderRespuesta,cerrado:renderCerrado,perdido:renderPerdido}[G.ui];
+  (fn||renderConsulta)();
+}
+function renderHud(){
+  const falta=Math.max(0,G.nextMonthly-G.day), alert=(G.cash<G.monthly&&falta<=6);
+  $("hud").innerHTML=`
+    <div class="cell"><div class="lbl">Caja</div><div class="val" style="color:${G.cash<G.monthly?'var(--bad)':'var(--good)'}">${money(G.cash)}</div></div>
+    <div class="cell"><div class="lbl">Reput.</div><div class="val">${G.rep} ⭐</div></div>
+    <div class="cell"><div class="lbl">Día</div><div class="val">${G.day}</div></div>
+    <div class="cell btn" onclick="openOps()"><div class="lbl">Ops</div><div class="val">${G.ops.length}/${G.capacity}</div></div>
+    <div class="cell ${alert?'alert':''}"><div class="lbl">Gastos ${falta}d</div><div class="val" style="color:${alert?'var(--bad)':'var(--txt)'}">${money(G.monthly)}</div></div>`;
+}
+
+// PASO 1 — NUEVA CONSULTA
+function renderConsulta(){
+  const st=G.st,c=st.cargo;
+  $("screen").innerHTML=`<div class="card">
+    <div class="step">📦 Nueva consulta</div>
+    <div class="cli"><div class="ava">🏢</div><div><div class="nm">${c.co}</div>
+      <div class="tg">${G.rep>55?'Cliente conocido':'Cliente nuevo'} · ${c.op}</div></div></div>
+    <div class="rowlist">
+      <div class="row"><span class="ic">📦</span><div><div class="k">Carga</div><div class="v">${c.desc} · ${c.merc}</div></div></div>
+      <div class="row"><span class="ic">🌍</span><div><div class="k">Ruta</div><div class="v">${c.ruta}</div></div></div>
+      <div class="row"><span class="ic">⏱️</span><div><div class="k">Urgencia</div><div class="v">${c.urgente?'⚡ Urgente':'Normal'}</div></div></div>
+    </div>
+    <div class="story">${c.historia}<div class="motiv">${c.motivo}</div></div>
+    ${c.flavor?`<div class="note"><span class="e">${c.flavor.slice(0,2)}</span><span>${c.flavor.slice(2)}</span></div>`:""}
+    <div class="actions">
+      <button class="b-go" onclick="goCotizar()">📝 Ver y cotizar</button>
+      <button class="b-ghost" onclick="rejectClient()">Rechazar</button>
+    </div></div>`;
+}
+function goCotizar(){ G.ui="cotizar"; render(); }
+
+// PASO 2 — ARMANDO COTIZACIÓN
+function renderCotizar(){
+  const st=G.st,p=st.persona,c=st.cargo,costo=c.costo;
+  const floor=Math.round(costo*1.10),cap=Math.round(costo*1.55);
+  if(st.price<floor) st.price=floor; if(st.price>cap) st.price=cap;
+  const m=(st.price-costo)/costo, acc=acceptance(), risk=estimateRisk(st), w=words(acc,risk.total,m);
+  $("screen").innerHTML=`<div class="card">
+    <div class="step">💲 Armando cotización — ${c.co}</div>
+    <div class="row" style="border:none;padding-top:0"><span class="ic">🌍</span><div><div class="k">${c.merc}</div><div class="v">${c.ruta}</div></div>
+      <div class="rt"><div class="k">Tu costo</div><div class="v" style="color:var(--info)">${money(costo)}</div></div></div>
+
+    <div class="price-box">
+      <div class="lbl">Precio de venta (tu cotización)</div>
+      <div class="big-num" style="color:var(--accent)">${money(st.price)}</div>
+      <div class="stepper">
+        <button onclick="bump(-50)">−</button>
+        <input type="range" min="${floor}" max="${cap}" value="${st.price}" step="25" oninput="G.st.price=+this.value;render()">
+        <button onclick="bump(50)">+</button></div>
+      <div class="pr-ends"><span>Piso 10% · ${money(floor)}</span><span>Máx · ${money(cap)}</span></div>
+    </div>
+    <div class="duo">
+      <div class="b"><div class="lbl">Ganancia</div><div class="n" style="color:var(--good)">${money(st.price-costo)}</div></div>
+      <div class="b"><div class="lbl">Margen</div><div class="n" style="color:${m<=0.12?'var(--warn)':'var(--info)'}">${Math.round(m*100)}%</div></div>
+    </div>
+
+    <div class="analysis">
+      <div class="an"><span class="e">${w.comp[0]}</span><div><b>${w.comp[1]}</b></div></div>
+      <div class="an"><span class="e">${w.rk[0]}</span><div><b>${w.rk[1]}</b> en la operación</div></div>
+      <div class="an"><span class="e">${w.rent[0]}</span><div><b>${w.rent[1]}</b></div></div>
+    </div>
+    ${st.revealed.length?`<div class="note"><span class="e">💡</span><span>${st.revealed[st.revealed.length-1]}</span></div>`:""}
+    <div class="note ${m<0.13||acc<0.4?'warn':''}"><span class="e">💬</span><span>${advice(st,acc,risk.total,m)}</span></div>
+
+    <div class="sect-lbl">📅 Plazo de pago — cobrás en</div>
+    <div class="seg">${[0,15,30,45,60].map(d=>`<button class="${st.term===d?'on':''}" onclick="G.st.term=${d};render()">${d===0?'Contado':d+'d'}<span class="s">${d===0?'hoy':'a '+d+'d'}</span></button>`).join("")}</div>
+    ${st.term>G.supplierTerm?`<div class="note warn"><span class="e">⏰</span><span>Cobrás en ${st.term}d pero al proveedor le pagás en ${G.supplierTerm}d: ponés plata de tu caja en el medio.</span></div>`:""}
+
+    <div class="sect-lbl">🚢 Transporte</div>
+    <div class="seg">${[["maritimo","🚢 Marítimo","económico"],["aereo","✈️ Aéreo","rápido, caro"],["terrestre","🚚 Terrestre","regional"]].map(([k,l,s])=>`<button class="${st.transport===k?'on':''}" onclick="setTransport('${k}')">${l}<span class="s">${s}</span></button>`).join("")}</div>
+
+    <div class="sect-lbl">🛠️ Tácticas</div>
+    <div class="tactics">
+      <button onclick="useTactic('tiempo')" ${st.tactics.tiempo?'disabled':''}>⏱️ Presión<br>de tiempo</button>
+      <button onclick="useTactic('valor')" ${st.tactics.valor?'disabled':''}>⭐ Argumento<br>de valor</button>
+      <button onclick="useTactic('anticipo')" ${st.tactics.anticipo?'disabled':''}>💵 Pago<br>anticipado</button>
+    </div>
+
+    <div class="summary">
+      <div><span class="lbl">Cobrás</span><s class="sn" style="color:var(--good)">${money(st.price)}</s><span class="op">en ${st.term}d</span></div>
+      <div class="op">−</div>
+      <div><span class="lbl">Pagás</span><s class="sn" style="color:var(--bad)">${money(costo)}</s><span class="op">en ${Math.min(G.supplierTerm,st.term)}d</span></div>
+      <div class="op">=</div>
+      <div><span class="lbl">Ganás</span><s class="sn" style="color:var(--accent)">${money(st.price-costo)}</s></div>
+    </div>
+    <div class="actions">
+      <button class="b-go" onclick="sendQuote()">📨 Enviar cotización</button>
+      <button class="b-ghost" onclick="rejectClient()">Pasar</button>
+    </div></div>`;
+}
+function bump(d){const st=G.st,c=st.cargo,floor=Math.round(c.costo*1.10),cap=Math.round(c.costo*1.55);
+  st.price=Math.max(floor,Math.min(cap,st.price+d));render();}
+function setTransport(mode){const st=G.st,b=st.cargo.costoBase,prev=st.cargo.costo;
+  st.cargo.costo=mode==="aereo"?Math.round(b*2.4):b;
+  st.cargo.clientMaxViable=Math.round(st.cargo.clientMaxViable*(st.cargo.costo/prev));
+  st.transport=mode;render();}
+
+// PASO 3 — RESPUESTA DEL CLIENTE (contraoferta)
+function renderRespuesta(){
+  const st=G.st,p=st.persona,costo=st.cargo.costo;
+  const acc=acceptance();
+  const mood=st.anger>=4?"😠":acc>0.6?"😀":acc>0.4?"😐":"😟";
+  const hayContra=(st.counter!=null||st.counterTerm!=null);
+  const futPrice=st.counter!=null?st.counter:st.price;
+  const futTerm=st.counterTerm!=null?st.counterTerm:st.term;
+  $("screen").innerHTML=`<div class="card">
+    <div class="step violet">🤝 Respuesta del cliente</div>
+    <div class="cli"><div class="ava">${mood}</div><div><div class="nm">${st.cargo.co}</div>
+      <div class="tg">Ronda ${st.round}/${p.maxRounds}</div></div></div>
+    <div class="story violet">${st.clientMsg}</div>
+    ${hayContra?`
+      <div class="duo">
+        <div class="b"><div class="lbl">Tu oferta</div><div class="n" style="color:var(--info)">${money(st.price)}</div>
+          <div class="op" style="font-size:11px;color:var(--muted)">ganás ${money(st.price-costo)}</div></div>
+        <div class="b"><div class="lbl">Si aceptás</div><div class="n" style="color:var(--violet)">${st.counter!=null?money(futPrice):money(st.price)}</div>
+          <div class="op" style="font-size:11px;color:var(--warn)">${st.counterTerm!=null?'pago a '+futTerm+'d':'ganás '+money(futPrice-costo)}</div></div>
+      </div>
+      <div class="actions">
+        <button class="b-ok" onclick="acceptCounter()">✓ Aceptar</button>
+        <button class="b-counter" onclick="backToCotizar()">🤝 Contraofertar</button>
+        <button class="b-no" onclick="rejectClient()">✕ Rechazar</button>
+      </div>`
+    :`<div class="note"><span class="e">ℹ️</span><span>El cliente no llega a tu precio. Podés bajar tu cotización o pasar.</span></div>
+      <div class="actions">
+        <button class="b-counter" onclick="backToCotizar()">📝 Ajustar cotización</button>
+        <button class="b-no" onclick="rejectClient()">Pasar</button>
+      </div>`}
+    <div class="tip">💡 Cada decisión afecta tu reputación, tu caja y tus chances de cierre.</div>
+  </div>`;
+}
+function backToCotizar(){ G.ui="cotizar"; render(); }
+
+// Cierre / pérdida (pantallas breves de transición)
+function renderCerrado(){
+  const st=G.st,m=(st.price-st.cargo.costo)/st.cargo.costo;
+  $("screen").innerHTML=`<div class="card center">
+    <div class="big" style="color:var(--good)">✅ ¡Trato cerrado!</div>
+    <div class="cli" style="justify-content:center"><div class="ava">😀</div><div style="text-align:left"><div class="nm">${st.cargo.co}</div><div class="tg">${st.cargo.ruta}</div></div></div>
+    <div class="duo">
+      <div class="b"><div class="lbl">Precio</div><div class="n">${money(st.price)}</div></div>
+      <div class="b"><div class="lbl">Ganancia</div><div class="n" style="color:var(--good)">${money(st.price-st.cargo.costo)}</div></div>
+      <div class="b"><div class="lbl">Margen</div><div class="n">${Math.round(m*100)}%</div></div>
+    </div>
+    <div class="note"><span class="e">📦</span><span>La operación quedó en curso. Cobrás en ${st.term}d (si todo sale bien). Mirala en “Ops”.</span></div>
+    <div class="actions"><button class="b-go" onclick="nextOrEnd()">Siguiente cliente →</button></div>
+  </div>`;
+}
+function renderPerdido(){
+  const st=G.st;
+  $("screen").innerHTML=`<div class="card center">
+    <div class="big" style="color:var(--bad)">Trato perdido</div>
+    <div class="story" style="border-color:var(--bad)">${st.clientMsg}</div>
+    <div class="tip">No pasa nada: pasar a tiempo también es parte del oficio.</div>
+    <div class="actions"><button class="b-go" onclick="nextOrEnd()">Siguiente cliente →</button></div>
+  </div>`;
+}
+
+// Operaciones en curso (vista aparte, accesible desde el HUD)
+function openOps(){ if(G.over) return; G._back=G.ui; G.ui="ops"; render(); }
+function closeOps(){ G.ui=(G._back&&G._back!=="ops")?G._back:"consulta"; render(); }
+function renderOps(){
+  const cobrar=G.ops.reduce((s,o)=>s+o.price,0), pagar=G.ops.filter(o=>!o.costPaid).reduce((s,o)=>s+o.costo,0);
+  const rows=G.ops.slice().sort((a,b)=>a.payDay-b.payDay).map(o=>{
+    const d=Math.max(0,o.payDay-G.day),r=o.risk.total,col=r>0.4?"var(--bad)":r>0.2?"var(--warn)":"var(--good)";
+    const pv=o.costPaid?"proveedor pagado":"−"+money(o.costo)+" prov. "+(Math.max(0,o.costDay-G.day)===0?"hoy":"en "+Math.max(0,o.costDay-G.day)+"d");
+    return `<div class="ops-row"><span class="dot" style="background:${col}"></span>
+      <span class="ops-co">${o.co}<div class="ops-sub">${pv}</div></span>
+      <span class="ops-amt">${money(o.price)}<div class="ops-when">${d===0?'cobra ya':'cobra en '+d+'d'}</div></span></div>`;
+  }).join("") || `<div class="tip center">No tenés operaciones en curso.</div>`;
+  $("screen").innerHTML=`<div class="card">
+    <div class="step">📋 Operaciones en curso (${G.ops.length}/${G.capacity})</div>
+    <div class="duo">
+      <div class="b"><div class="lbl">Por cobrar</div><div class="n" style="color:var(--good)">${money(cobrar)}</div></div>
+      <div class="b"><div class="lbl">Por pagar</div><div class="n" style="color:var(--bad)">${money(pagar)}</div></div>
+      <div class="b"><div class="lbl">Caja libre</div><div class="n">${money(G.cash)}</div></div>
+    </div>
+    ${rows}
+    <div class="actions">
+      ${G.ops.length?`<button class="b-no" onclick="advanceTime();G.ui='ops';render()">⏩ Avanzar tiempo</button>`:''}
+      <button class="b-go" onclick="closeOps()">Volver</button></div>
+  </div>`;
+}
+function renderSinCapacidad(){
+  $("screen").innerHTML=`<div class="card center">
+    <div class="big" style="color:var(--warn)">Sin capacidad</div>
+    <div>Tenés ${G.ops.length}/${G.capacity} operaciones en curso. Esperá que se resuelvan para tomar nuevas.</div>
+    <div class="tip">Los gastos del mes corren igual.</div>
+    <div class="actions"><button class="b-go" onclick="advanceTime();render()">⏩ Avanzar el tiempo</button>
+      <button class="b-no" onclick="openOps()">Ver operaciones</button></div></div>`;
+}
+
+function gameOver(){ G.over=true;
+  $("screen").innerHTML=`<div class="card center"><div class="big" style="color:var(--bad)">🏴 BANCARROTA</div>
+    <div>Te quedaste sin caja en el día ${G.day}.</div>
+    <div class="tip">Cerraste ${G.deals} · ${G.problems} salieron mal · pasaste ${G.lost} · reputación ${G.rep}.</div>
+    <div class="tip">No hay fórmula única: a veces conviene pasar, a veces arriesgar para llegar a fin de mes.</div>
+    <div class="actions"><button class="b-go" onclick="newGame()">Jugar de nuevo</button></div></div>`;
+  renderHud();
+}
+
+function revealHint(){const h=G.st.persona.hints[G.st.revealed.length];if(h)G.st.revealed.push(h);}
+function flash(t){log("▶ "+t);}
+function log(t){const d=document.createElement("div");d.textContent=t;$("log").prepend(d);}
+newGame();
+</script>
+</body>
+</html>
