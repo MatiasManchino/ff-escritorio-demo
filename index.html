@@ -122,6 +122,31 @@ const clamp01=x=>Math.max(0,Math.min(1,x));
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const money=n=>"$"+Math.round(n).toLocaleString("es-AR");
+const FEEDBACK_STORAGE_KEY = 'ff_escritorio_feedback';
+
+function getSavedFeedback(){
+  try { return JSON.parse(localStorage.getItem(FEEDBACK_STORAGE_KEY)) || []; }
+  catch (err) { console.warn('Error leyendo feedback guardado', err); return []; }
+}
+function saveFeedbackEntry(entry){
+  const all = getSavedFeedback();
+  all.push(entry);
+  localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(all));
+}
+function getSavedFeedbackCount(){
+  return getSavedFeedback().length;
+}
+function exportSavedFeedback(){
+  const data = getSavedFeedback();
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ff_escritorio_feedback.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+}
 
 // ── Personalidades (ocultas; se infieren) ───────────────────────────────
 const PERSONAS={
@@ -296,32 +321,18 @@ function showFeedbackModal(manual=false){
     const comments = modalDiv.querySelector('#feedbackComments').value;
     const minutesPlayed = Math.floor((Date.now() - G.startTime)/60000);
     const stats = G ? `Día: ${G.day} | Deals cerrados: ${G.deals} | Reputación: ${G.rep} | Caja: ${money(G.cash)} | Minutos jugados: ${minutesPlayed}` : 'No disponible';
-    const feedbackText = `=== FEEDBACK FREIGHT FORWARDER ===
-Jugador: ${name}
-Puntuación: ${rating}/5
-Volvería a jugar: ${again}
-Comentarios: ${comments}
-Estadísticas de la partida: ${stats}
-Fecha: ${new Date().toLocaleString()}
-=====================================`;
-    const blob = new Blob([feedbackText], {type: 'text/plain'});
-    const a = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    a.href = url;
-    a.download = `feedback_ff_escritorio_${name.replace(/[^a-z0-9]/gi,'_')}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    alert('¡Gracias por tu feedback! Se descargó el archivo.');
+    const feedbackEntry = {
+      name,
+      rating: rating || '0',
+      again: again || 'Sin responder',
+      comments,
+      stats,
+      date: new Date().toLocaleString()
+    };
+    saveFeedbackEntry(feedbackEntry);
+    alert('¡Gracias por tu feedback! Quedó guardado en esta página.');
     modalDiv.remove();
-  });
-  
-  modalDiv.querySelector('#closeFeedback').addEventListener('click', () => modalDiv.remove());
-  modalDiv.addEventListener('click', (e) => { if(e.target === modalDiv) modalDiv.remove(); });
-}
-
-// ── Inicialización ─────────────────────────────────────────────────────
+    render();
 function newGame(){
   G={cash:6000,rep:50,day:1,deals:0,lost:0,problems:0,nextMonthly:30,monthly:1500,
      ops:[],capacity:4,over:false,st:null,tierMsg:50,supplierTerm:15,ui:"consulta",
@@ -482,6 +493,7 @@ function renderHud(){
     <div class="cell"><div class="lbl">Caja</div><div class="val" style="color:${G.cash<G.monthly?'var(--bad)':'var(--good)'}">${money(G.cash)}</div></div>
     <div class="cell"><div class="lbl">Reput.</div><div class="val">${G.rep} ⭐</div></div>
     <div class="cell"><div class="lbl">Día</div><div class="val">${G.day}</div></div>
+    <div class="cell"><div class="lbl">Feedback</div><div class="val">${getSavedFeedbackCount()}</div></div>
     <div class="cell btn" onclick="openOps()"><div class="lbl">Ops</div><div class="val">${G.ops.length}/${G.capacity}</div></div>
     <div class="cell ${alert?'alert':''}"><div class="lbl">Gastos ${falta}d</div><div class="val" style="color:${alert?'var(--bad)':'var(--txt)'}">${money(G.monthly)}</div></div>
     <div class="cell btn" onclick="showFeedbackModal(true)"><div class="lbl">📝</div><div class="val" style="font-size:12px">Opinar</div></div>
