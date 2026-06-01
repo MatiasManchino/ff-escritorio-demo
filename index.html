@@ -114,8 +114,8 @@
 
 <script>
 /* ════════════════════════════════════════════════════════════════════════
-   FREIGHT FORWARDER — "El Escritorio"  ·  v2
-   Con botón de reglas (solo reglas) y feedback automático a los 5 minutos
+   FREIGHT FORWARDER — "El Escritorio"
+   Feedback automático a los 5 minutos que se guarda en Google Sheets
    ════════════════════════════════════════════════════════════════════════ */
 const $=id=>document.getElementById(id);
 const clamp01=x=>Math.max(0,Math.min(1,x));
@@ -123,47 +123,19 @@ const rnd=(a,b)=>a+Math.random()*(b-a);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const money=n=>"$"+Math.round(n).toLocaleString("es-AR");
 
-function sendFeedbackRemote(entry){
-  // 1. Primero, descargar el archivo local (esto siempre funciona)
-  const stats = entry.stats;
-  const feedbackText = `=== FEEDBACK FREIGHT FORWARDER ===
-Jugador: ${entry.name}
-Puntuación: ${entry.rating}/5
-Volvería a jugar: ${entry.again}
-Comentarios: ${entry.comments}
-Estadísticas de la partida: ${stats}
-Fecha: ${entry.date}
-=====================================`;
-  
-  const blob = new Blob([feedbackText], {type: 'text/plain'});
-  const a = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-  a.href = url;
-  a.download = `feedback_ff_escritorio_${entry.name.replace(/[^a-z0-9]/gi,'_')}.txt`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-  const MI_EMAIL = 'maximogarcia5757@gmail.com';
-  // 2. Opcional: abrir el correo del usuario con los datos precargados
-  const subject = encodeURIComponent('Feedback Freight Forwarder');
-  const body = encodeURIComponent(
-    `Nombre: ${entry.name}\n` +
-    `Puntuación: ${entry.rating}/5\n` +
-    `Volvería a jugar: ${entry.again}\n` +
-    `Comentarios: ${entry.comments}\n` +
-    `Estadísticas: ${stats}\n` +
-    `Fecha: ${entry.date}\n\n` +
-    `--- Archivo adjunto: feedback_${entry.name.replace(/[^a-z0-9]/gi,'_')}.txt ---`
-  );
-  
-  // Preguntar si quiere enviar por correo también
-  if(confirm('✅ Feedback guardado localmente. ¿Querés abrir tu correo para enviarlo también?')) {
-    window.location.href = `mailto:${MI_EMAIL}?subject=${subject}&body=${body}`;
-  }
-  
-  alert('¡Gracias por tu feedback! Se descargó el archivo en tu computadora.');
-  return Promise.resolve();
+// ========== FUNCIÓN QUE GUARDA EL FEEDBACK EN GOOGLE SHEETS ==========
+const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyOMG6IUEs3Z5gBkU-o0oeUTqXRci83slZjvAWEvf1axCzqh-6jLIMfwIoVeYNkh8kX/exec';
+
+function guardarFeedback(entry){
+  fetch(GOOGLE_SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(entry)
+  });
+  alert('✅ ¡Gracias por tu feedback! Se ha guardado correctamente.');
 }
 
 // ── Personalidades (ocultas; se infieren) ───────────────────────────────
@@ -331,7 +303,7 @@ function showFeedbackModal(manual=false){
   noBtn.addEventListener('click', () => { resetAgain(); noBtn.style.background = 'var(--bad)'; againInput.value = 'No'; });
   maybeBtn.addEventListener('click', () => { resetAgain(); maybeBtn.style.background = 'var(--warn)'; againInput.value = 'Tal vez'; });
   
-  // Submit feedback
+  // Submit feedback - AHORA SOLO GUARDA EN GOOGLE SHEETS
   modalDiv.querySelector('#submitFeedback').addEventListener('click', () => {
     const name = modalDiv.querySelector('#feedbackName').value || 'Anónimo';
     const rating = ratingInput.value;
@@ -340,17 +312,16 @@ function showFeedbackModal(manual=false){
     const minutesPlayed = Math.floor((Date.now() - G.startTime)/60000);
     const stats = G ? `Día: ${G.day} | Deals cerrados: ${G.deals} | Reputación: ${G.rep} | Caja: ${money(G.cash)} | Minutos jugados: ${minutesPlayed}` : 'No disponible';
     const feedbackEntry = {
-      name,
+      name: name,
       rating: rating || '0',
       again: again || 'Sin responder',
-      comments,
-      stats,
+      comments: comments,
+      stats: stats,
       date: new Date().toLocaleString()
     };
-    sendFeedbackRemote(feedbackEntry);
-      modalDiv.remove();
-      render();
-      alert('¡Gracias por tu feedback! Se descargó el archivo.');
+    guardarFeedback(feedbackEntry);
+    modalDiv.remove();
+    render();
   });
 
   modalDiv.querySelector('#closeFeedback').addEventListener('click', () => modalDiv.remove());
@@ -375,7 +346,7 @@ function newGame(){
   newClient(); render();
 }
 
-// ── Resto de la lógica del juego (igual que antes) ─────────────────────
+// ── Resto de la lógica del juego ─────────────────────────────────────
 function newClient(){
   const persona=pick(Object.values(PERSONAS));
   const base=pick(CARGOS);
