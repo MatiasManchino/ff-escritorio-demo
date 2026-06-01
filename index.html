@@ -333,6 +333,12 @@ function showFeedbackModal(manual=false){
     alert('¡Gracias por tu feedback! Quedó guardado en esta página.');
     modalDiv.remove();
     render();
+  });
+
+  modalDiv.querySelector('#closeFeedback').addEventListener('click', () => modalDiv.remove());
+  modalDiv.addEventListener('click', (e) => { if(e.target === modalDiv) modalDiv.remove(); });
+}
+
 function newGame(){
   G={cash:6000,rep:50,day:1,deals:0,lost:0,problems:0,nextMonthly:30,monthly:1500,
      ops:[],capacity:4,over:false,st:null,tierMsg:50,supplierTerm:15,ui:"consulta",
