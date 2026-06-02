@@ -1149,7 +1149,7 @@ function updateNavDots(){
 //  • Zona muerta: no se mueve nada hasta recorrer DEAD_ZONE px.
 //  • Solo se arrastra si el gesto es claramente HORIZONTAL.
 //  • Para cambiar de panel hay que superar SWIPE_THRESHOLD px.
-const DEAD_ZONE=14, SWIPE_THRESHOLD=70;
+const DEAD_ZONE=24, SWIPE_THRESHOLD=100;
 const CONTROL_SEL='button,input,textarea,select,a,.seg-btn,.tactic,.hub-action,.hub-card,.agent-card,.nav-dot,.info-row,.modal';
 let gStartX=0,gStartY=0,gDecided=false,gHoriz=false,gActive=false;
 
@@ -1164,7 +1164,7 @@ function gMove(x,y){
   if(!gDecided){
     if(Math.abs(dx)<DEAD_ZONE && Math.abs(dy)<DEAD_ZONE) return;   // dentro de la zona muerta: ignorar
     gDecided=true;
-    gHoriz=Math.abs(dx)>Math.abs(dy)*1.4;                          // ¿es un swipe horizontal o un scroll vertical?
+    gHoriz=Math.abs(dx)>Math.abs(dy)*1.8;                          // ¿es un swipe horizontal o un scroll vertical?
     if(gHoriz) panelsEl.classList.add("dragging");
   }
   if(!gHoriz) return;                                              // gesto vertical → dejar scrollear
