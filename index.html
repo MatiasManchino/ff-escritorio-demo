@@ -2056,7 +2056,48 @@ const HELP=[
   ["Reiniciar", {t:"🔄 Empezar de nuevo", b:"Borra todo y empezás el juego otra vez desde cero."}],
   ["Jugar de nuevo", {t:"🔄 Otra partida", b:"Empezás una partida nueva desde el principio."}],
   ["Opinar", {t:"💬 Contarnos qué te pareció", b:"Nos dejás tu opinión del juego para que lo hagamos mejor. ¡Gracias!"}],
+  // ── DATOS / TEXTOS (no son botones, pero también se pueden tocar en modo ayuda) ──
+  ["Temporada alta", {t:"🔴 Temporada alta", b:"En esta época hay mucha gente queriendo enviar cargas, así que TODOS los agentes están caros. Te va a costar más conseguir un buen precio. ¡Paciencia!"}],
+  ["Mercado en baja", {t:"🟢 Mercado en baja", b:"¡Qué suerte! Hoy los agentes están baratos. Es un buen momento para conseguir un costo bajo y ganar más plata."}],
+  ["Nueva consulta", {t:"📦 Nueva consulta", b:"Llegó un cliente nuevo a pedirte que le muevas una carga. Leé bien qué necesita: de dónde a dónde, qué es y si tiene apuro."}],
+  ["Urgente", {t:"⚡ Carga urgente", b:"Este cliente tiene MUCHO apuro. Si la carga llega rápido, te lo va a agradecer (y paga mejor). El avión o pedir prioridad al agente ayudan un montón."}],
+  ["Negociando", {t:"🤝 Estás negociando", b:"Quiere decir que estás en plena charla de precio con el cliente. Le mandás una oferta y él responde."}],
+  ["Ronda", {t:"🔁 Las rondas", b:"Es la cantidad de veces que vas y venís con el cliente. Si tardás mucho en ponerte de acuerdo, se cansa y se puede ir."}],
+  ["Cliente nuevo", {t:"🆕 Cliente nuevo", b:"Es la primera vez que este cliente trabaja con vos. Todavía no te conoce, así que ojo con la primera impresión."}],
+  ["Cliente conocido", {t:"🤝 Cliente conocido", b:"Ya trabajaste con este cliente antes. Como tenés buena fama, te tiene confianza."}],
+  ["Margen", {t:"📊 El margen", b:"Es cuánta ganancia te queda comparado con lo que pagaste. Si es muy chiquito (menos de 12%), un solo problema te puede dejar sin ganancia. ¡Tratá de que no sea tan bajo!"}],
+  ["Ganancia", {t:"💰 La ganancia", b:"Es la plata que te queda en el bolsillo: lo que te paga el cliente MENOS lo que le pagás al agente. ¡Es tu premio por hacer bien el negocio!"}],
+  ["Cierre estimado", {t:"🎲 Chance de cierre", b:"Es qué tan probable es que el cliente te diga que SÍ a este precio. Más alto = más fácil que acepte. Si está bajo, bajá el precio o mejorá las condiciones."}],
+  ["Tu costo", {t:"🏷️ Tu costo", b:"Es lo que vos le pagás al agente por llevar la carga. Tu precio al cliente tiene que ser MÁS ALTO que esto para ganar plata."}],
+  ["Precio de venta", {t:"🏷️ Precio de venta", b:"Es lo que le vas a cobrar al cliente. Movés la barrita para elegirlo. Más alto ganás más, pero es más difícil que el cliente diga que sí."}],
+  ["Difícil de cerrar", {t:"😟 Difícil de cerrar", b:"El cliente probablemente diga que no a este precio. Conviene bajarlo un poco o mejorar el plazo de pago."}],
+  ["Buena posibilidad", {t:"😀 Buena posibilidad", b:"¡Vas bien! Con este precio hay buena chance de que el cliente acepte."}],
+  ["Riesgo alto", {t:"🚨 Riesgo alto", b:"Algo puede salir mal con esta carga (que el agente falle o el cliente no pague). Para cuidarte, pedí que te paguen al contado o elegí un agente más confiable."}],
+  ["Riesgo medio", {t:"⚠️ Riesgo medio", b:"Hay algo de peligro de que la operación tenga problemas, pero no es grave. Estate atento."}],
+  ["Riesgo bajo", {t:"🛡️ Riesgo bajo", b:"Esta operación es bastante segura. ¡Tranquilo!"}],
+  ["confiable", {t:"🛡️ Confiabilidad del agente", b:"Es qué tan bien trabaja ese agente. Cuanto más alto el número (%), menos problemas vas a tener con la carga. Los baratos suelen ser menos confiables."}],
+  ["transit", {t:"🕒 Tiempo de viaje", b:"Cuántos días tarda la carga en llegar. Menos días es mejor, sobre todo para clientes apurados."}],
+  ["validez", {t:"📅 Validez de la tarifa", b:"Cuántos días le dura ese precio al agente. Si tardás mucho en decidir, el precio se puede vencer."}],
+  ["Cobras", {t:"💵 Lo que cobrás", b:"La plata que te va a dar el cliente, y en cuántos días te la paga."}],
+  ["Pagas", {t:"💸 Lo que pagás", b:"La plata que le tenés que dar al agente, y en cuántos días. Si le pagás antes de cobrarle al cliente, usás plata de tu bolsillo."}],
+  ["Ruta", {t:"🌍 La ruta", b:"De dónde sale la carga y a dónde tiene que llegar."}],
+  ["Carga", {t:"📦 La carga", b:"Qué es lo que hay que mover y cuánto (por ejemplo «3x40'HC» son 3 contenedores grandes)."}],
+  ["Modo", {t:"🚢 Cómo viaja", b:"Si la carga va por barco (barato y lento), avión (caro y rápido) o camión (para distancias cortas)."}],
 ];
+// Glosario: palabras/siglas sueltas que aparecen dentro de los textos del juego.
+const GLOSARIO=[
+  [/40'?HC|40HQ|40'?HQ/i, {t:"📦 Contenedor 40'HC", b:"Es un contenedor grande, de los más usados (mide unos 12 metros de largo y es un poco más alto que el normal). «3x40'HC» quiere decir 3 de esos."}],
+  [/reefer/i, {t:"❄️ Reefer (refrigerado)", b:"Es un contenedor con heladera adentro. Sirve para cosas que no se pueden calentar, como vinos, comida o flores."}],
+  [/CBM/i, {t:"📐 CBM (metros cúbicos)", b:"Es una forma de medir cuánto lugar ocupa la carga. «18 CBM» es como 18 cajas grandes de un metro por lado."}],
+  [/cadena de fr[ií]o/i, {t:"❄️ Cadena de frío", b:"Es mantener la carga siempre fría, de principio a fin, sin que se caliente ni un ratito. Si se corta, la mercadería se arruina."}],
+  [/sobredimensionada/i, {t:"📏 Carga sobredimensionada", b:"Es una carga GIGANTE que no entra en un contenedor normal (como una máquina enorme). Necesita camiones especiales."}],
+  [/Importaci[oó]n/i, {t:"📥 Importación", b:"Traer mercadería de otro país hacia acá."}],
+  [/Exportaci[oó]n/i, {t:"📤 Exportación", b:"Mandar mercadería desde acá hacia otro país."}],
+  [/Contado/i, {t:"💵 Contado", b:"Que te pagan ya, en el momento. Es lo mejor para tu plata."}],
+  [/Piso/i, {t:"⬇️ Precio piso", b:"Es el precio más bajo que podés ponerle al cliente sin perder plata (siempre ganás aunque sea un poquito)."}],
+  [/Max|Máx/i, {t:"⬆️ Precio máximo", b:"Es lo más caro que el juego te deja pedir. Cuidado: muy caro y el cliente se va."}],
+];
+
 // Explicaciones para cosas que NO son botones de texto (palancas, dots, etc.)
 function helpFor(el){
   // dots de navegación
@@ -2101,18 +2142,30 @@ function showHelpTip(info){
     <button class="ht-close" onclick="this.closest('.help-tip').remove()">¡Entendí! 👍</button>`;
   document.body.appendChild(d);
 }
-// Interceptor en fase de CAPTURA: si el modo ayuda está activo, explica en vez de ejecutar.
+// Interceptor en fase de CAPTURA: si el modo ayuda está activo, explica CUALQUIER
+// cosa que toques (botón, dato, texto) en vez de ejecutar la acción.
 document.addEventListener('click',function(e){
   if(!helpMode) return;
-  if(e.target.closest('.help-fab,.help-tip,.help-banner')) return;  // estos sí funcionan normal
-  const el=e.target.closest('button,input[type=range],.nav-dot,.seg,.agent-card,.hud-cell');
-  if(!el) return;
+  if(e.target.closest('.help-fab,.help-tip,.help-banner')) return;  // la propia ayuda funciona normal
+  // tomamos el elemento más específico que tenga texto, o el que tocaste
+  let el=e.target;
+  if(!el || el===document.body) return;
   e.preventDefault(); e.stopPropagation();
-  let info=helpFor(el);
+
+  // 1) Casos especiales por tipo de elemento (slider, dots, HUD, tarjetas, plazo)
+  let info=helpFor(el) || helpFor(el.parentElement||el);
+  const txt=((el.textContent||"")+" "+(el.getAttribute&&el.getAttribute('placeholder')||"")).replace(/\s+/g," ").trim();
+
+  // 2) Glosario: siglas/palabras sueltas dentro del texto (40'HC, reefer, CBM…)
+  if(!info){ const g=GLOSARIO.find(([rx])=>rx.test(txt)); if(g) info=g[1]; }
+  // 3) Diccionario de botones/datos por coincidencia de texto
+  if(!info){ const hit=HELP.find(([k])=>txt.includes(k)); if(hit) info=hit[1]; }
+  // 4) Si hay un mensaje del cliente/agente (la "historia"), explicarlo
+  if(!info && el.closest('.story')) info={t:"💬 Lo que te dicen", b:"Esto es lo que te cuenta el cliente (o el agente). Leelo: te da pistas sobre qué le importa, si tiene apuro o cuánto quiere pagar."};
+  // 5) Última opción: explicación genérica según dónde tocaste
   if(!info){
-    const txt=(el.textContent||"").replace(/\s+/g," ").trim();
-    const hit=HELP.find(([k])=>txt.includes(k));
-    info = hit ? hit[1] : {t:"🔘 Este botón", b:"Tocalo (con la ayuda apagada) para usarlo. Salí del modo ayuda con el ❓ celeste."};
+    if(txt.length>0 && txt.length<60) info={t:"ℹ️ «"+txt+"»", b:"Es un dato de la operación. Te sirve para decidir qué precio poner y cómo negociar. Tocá el ❓ para salir de la ayuda y seguir jugando."};
+    else info={t:"ℹ️ Información", b:"Esto es info que te ayuda a tomar decisiones. Salí del modo ayuda con el ❓ celeste para volver a jugar."};
   }
   showHelpTip(info);
 },true);
