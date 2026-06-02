@@ -604,6 +604,14 @@ const LOSE={
   enojo:"Asi no se puede negociar. Chau."
 };
 
+// ── TÁCTICAS: catálogo (3 de venta + 3 de compra) ──────────────────────
+const PRIZE_EVERY=3;   // cada cuántas cargas cerradas ganás una táctica nueva
+const TACTIC_NAMES={tiempo:"Presión de tiempo",valor:"Argumento de valor",anticipo:"Pago anticipado",
+                    farol:"Farol",volumen:"Prometer volumen",prioridad:"Pedir prioridad"};
+const TACTIC_EMOJI={tiempo:"⏱️",valor:"⭐",anticipo:"💵",farol:"🃏",volumen:"📦",prioridad:"⚡"};
+const TACTIC_SIDE ={tiempo:"venta",valor:"venta",anticipo:"venta",farol:"compra",volumen:"compra",prioridad:"compra"};
+const TACTIC_KEYS =["tiempo","valor","anticipo","farol","volumen","prioridad"];
+
 // ═══════════════════════════════════════════════════════════════════════
 //  GAME STATE
 // ═══════════════════════════════════════════════════════════════════════
@@ -622,7 +630,11 @@ function newGame(){
     tierMsg:0,supplierTerm:15,
     agentUi:"lista",aneg:null,
     startTime:Date.now(),
-    rel:{}, incidents:[], _needNew:false
+    rel:{}, incidents:[], _needNew:false,
+    // Inventario de tácticas: arrancás con 1 de cada una (3 de venta + 3 de compra).
+    // Usar una gasta 1. Cada PRIZE_EVERY cargas cerradas ganás una más.
+    inv:{tiempo:1,valor:1,anticipo:1,farol:1,volumen:1,prioridad:1},
+    lastPrizeAt:0
   };
   AGENTES.forEach(a=>G.rel[a.id]=50);   // relación con agentes: sigue siendo 0..100 (aparte de la reputación)
   feedbackShown=false;
@@ -755,7 +767,9 @@ function acceptCounter(){
 
 function useTactic(t){
   const st=G.st,p=st.persona;
-  if(st.finished||st.tactics[t])return;
+  if(st.finished||st.tactics[t])return;          // 1 vez por trato
+  if((G.inv[t]||0)<=0){ flash("No te quedan tácticas de «"+TACTIC_NAMES[t]+"». Cerrá cargas para ganar más."); return; }
+  G.inv[t]--;                                    // gasta una del inventario
   st.tactics[t]=true;
   if(t==="tiempo"){
     if(p.urgency>60){st.tacticBonus+=0.18;flash("Presion de tiempo: le pico la urgencia.");}
@@ -851,7 +865,9 @@ function agentDescuento(){
 
 function agentTactic(t){
   const an=G.aneg,a=agentById(an.agentId);
-  if(an.tactics[t])return;
+  if(an.tactics[t])return;                        // 1 vez por negociación
+  if((G.inv[t]||0)<=0){ flash("No te quedan tácticas de «"+TACTIC_NAMES[t]+"». Cerrá cargas para ganar más."); return; }
+  G.inv[t]--;                                     // gasta una del inventario
   an.tactics[t]=true;
   if(t==="farol"){
     if(Math.random()<0.45+a.flex){
@@ -958,12 +974,12 @@ function tick(d){
 function nextOrEnd(){
   tick(Math.round(rnd(2,5)));
   if(G.over) return;
-  // Si el tick generó incidentes, primero el jugador los resuelve; el cliente nuevo espera.
+  // Primero incidentes (decisión), después premio de táctica; el cliente nuevo espera.
   if(G.incidents.length){ G._needNew=true; renderAll(); checkIncidents(); return; }
   if(G.cash<0)return gameOver();
-  newClient();
-  goPanel(1);
-  renderAll();
+  G._needNew=true;
+  if(checkTacticPrize()){ renderAll(); return; }   // mostró el premio; al cerrarlo sigue el flujo
+  continuarFlujo();
 }
 
 function advanceTime(){
@@ -989,6 +1005,82 @@ function revealHint(){
   if(h)G.st.revealed.push(h);
 }
 function flash(t){log("▶ "+t);}
+
+// ── Sonido "clin!" de premio (Web Audio, sin archivos) ─────────────────
+let _audioCtx=null;
+function playClin(){
+  try{
+    _audioCtx=_audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    const ctx=_audioCtx, now=ctx.currentTime;
+    // dos notas ascendentes tipo campanita
+    [[880,0],[1318.5,0.12]].forEach(([f,t])=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type="sine";o.frequency.value=f;
+      o.connect(g);g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.0001,now+t);
+      g.gain.exponentialRampToValueAtTime(0.25,now+t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,now+t+0.5);
+      o.start(now+t);o.stop(now+t+0.55);
+    });
+  }catch(e){/* si el navegador bloquea audio, no pasa nada */}
+}
+
+// ── Premio de táctica: cada PRIZE_EVERY cargas cerradas ────────────────
+// La mitad de las veces te deja elegir; la otra mitad es aleatoria (sorpresa).
+function checkTacticPrize(){
+  if(G.deals>0 && G.deals-G.lastPrizeAt>=PRIZE_EVERY){
+    G.lastPrizeAt=G.deals;
+    if(Math.random()<0.5){
+      // Aleatoria
+      const k=pick(TACTIC_KEYS);
+      G.inv[k]=(G.inv[k]||0)+1;
+      playClin();
+      showPrizeModal(k,false);
+    }else{
+      // El jugador elige
+      showPrizeModal(null,true);
+      playClin();
+    }
+    return true;
+  }
+  return false;
+}
+function grantTactic(k){
+  G.inv[k]=(G.inv[k]||0)+1;
+  const m=document.getElementById('prizeModal'); if(m) m.remove();
+  log("🎁 Ganaste una táctica: "+TACTIC_EMOJI[k]+" "+TACTIC_NAMES[k]+" (ahora tenés "+G.inv[k]+").");
+  renderAll();
+  if(!checkIncidents()) continuarFlujo();
+}
+function showPrizeModal(forcedKey,chooses){
+  const d=document.createElement('div');d.className='modal';d.id='prizeModal';
+  if(chooses){
+    const cards=TACTIC_KEYS.map(k=>`
+      <div class="hub-action" onclick="grantTactic('${k}')" style="border-color:var(--accent)">
+        <span class="ha-icon">${TACTIC_EMOJI[k]}</span>
+        <div class="ha-content">
+          <div class="ha-title">${TACTIC_NAMES[k]}</div>
+          <div class="ha-desc">${TACTIC_SIDE[k]==='venta'?'Para el cliente':'Para el agente'} · tenés ${G.inv[k]||0}</div>
+        </div>
+        <span class="ha-arrow">+1</span>
+      </div>`).join("");
+    d.innerHTML=`<div class="modal-box">
+      <div class="intro-logo">🎁</div>
+      <div class="modal-title" style="text-align:center">¡Ganaste una táctica!</div>
+      <p style="text-align:center;color:var(--txt2);font-size:13px;margin-bottom:6px">Cerraste ${G.deals} cargas. Elegí cuál querés sumar:</p>
+      ${cards}</div>`;
+  }else{
+    const k=forcedKey;
+    d.innerHTML=`<div class="modal-box center">
+      <div class="intro-logo">🎁</div>
+      <div class="modal-title">¡Premio! 🔔</div>
+      <div style="font-size:46px;margin:10px 0">${TACTIC_EMOJI[k]}</div>
+      <div class="big" style="color:var(--accent)">${TACTIC_NAMES[k]}</div>
+      <p style="color:var(--txt2);font-size:13px;margin:8px 0">Te tocó una táctica de ${TACTIC_SIDE[k]==='venta'?'venta (cliente)':'compra (agente)'}. Ahora tenés ${G.inv[k]}.</p>
+      <button class="modal-close" onclick="this.closest('.modal').remove();if(!checkIncidents())continuarFlujo();">¡Genial! 🎉</button></div>`;
+  }
+  document.body.appendChild(d);
+}
 function log(t){
   const d=document.createElement("div");
   d.textContent="["+G.day+"] "+t;
@@ -1015,6 +1107,13 @@ function advice(st,acc,risk,m){
   if(m<0.13)return "Margen muy fino: un problema operativo te lo come. Negocia mejor con el agente.";
   if(risk>0.4)return "Riesgo alto: el agente es poco confiable. Pedi contado o cambia de agente.";
   return "Precio equilibrado. Ajusta el plazo para mejorar tu caja.";
+}
+// Botón de táctica con su stock (×N). Se deshabilita si ya se usó en este trato o si no quedan.
+function tacticBtn(k,fn,used){
+  const n=G.inv[k]||0;
+  const dis=used||n<=0;
+  return `<button class="tactic ${used?'used':''}" onclick="${fn}('${k}')" ${dis?'disabled':''}>`+
+         `${TACTIC_EMOJI[k]} ${TACTIC_NAMES[k]}<span style="display:block;font-size:10px;opacity:.7;margin-top:2px">×${n}</span></button>`;
 }
 function relWord(r){return r>=80?"Excelente":r>=65?"Buena":r>=45?"Normal":r>=25?"Floja":"Mala";}
 function relColorClass(r){return r>=65?"good":r>=35?"mid":"bad";}
@@ -1044,71 +1143,52 @@ function updateNavDots(){
   });
 }
 
-// Touch events
-panelsEl.addEventListener("touchstart",e=>{
-  dragStartX=e.touches[0].clientX;
-  dragStartY=e.touches[0].clientY;
-  isDragging=true;
-  panelsEl.classList.add("dragging");
-},{passive:true});
+// ── Navegación por gesto (táctil + mouse), con baja sensibilidad ───────
+// Reglas para no robar los toques a los botones:
+//  • Si el gesto EMPIEZA sobre un control (botón, slider, etc.) NO se arrastra.
+//  • Zona muerta: no se mueve nada hasta recorrer DEAD_ZONE px.
+//  • Solo se arrastra si el gesto es claramente HORIZONTAL.
+//  • Para cambiar de panel hay que superar SWIPE_THRESHOLD px.
+const DEAD_ZONE=14, SWIPE_THRESHOLD=70;
+const CONTROL_SEL='button,input,textarea,select,a,.seg-btn,.tactic,.hub-action,.hub-card,.agent-card,.nav-dot,.info-row,.modal';
+let gStartX=0,gStartY=0,gDecided=false,gHoriz=false,gActive=false;
 
-panelsEl.addEventListener("touchmove",e=>{
-  if(!isDragging)return;
-  dragCurrentX=e.touches[0].clientX;
-  const dx=dragCurrentX-dragStartX;
-  const baseShift=-activePanel*33.333;
-  const extra=(dx/window.innerWidth)*33.333;
-  panelsEl.style.transform="translateX(calc("+baseShift+"% + "+extra+"%))";
-},{passive:true});
-
-panelsEl.addEventListener("touchend",e=>{
-  if(!isDragging)return;
-  isDragging=false;
-  panelsEl.classList.remove("dragging");
-  const dx=dragCurrentX-dragStartX;
-  const dy=e.changedTouches[0].clientY-dragStartY;
-  if(Math.abs(dx)>50 && Math.abs(dx)>Math.abs(dy)*1.2){
-    if(dx>0 && activePanel>0) goPanel(activePanel-1);
-    else if(dx<0 && activePanel<2) goPanel(activePanel+1);
-    else updatePanelsPosition();
-  }else{
-    updatePanelsPosition();
+function gStart(x,y,target){
+  // Si arranca sobre un control o dentro de un modal, no tomamos el gesto de swipe.
+  if(target && target.closest && target.closest(CONTROL_SEL)){ gActive=false; return; }
+  gStartX=x; gStartY=y; gDecided=false; gHoriz=false; gActive=true;
+}
+function gMove(x,y){
+  if(!gActive) return;
+  const dx=x-gStartX, dy=y-gStartY;
+  if(!gDecided){
+    if(Math.abs(dx)<DEAD_ZONE && Math.abs(dy)<DEAD_ZONE) return;   // dentro de la zona muerta: ignorar
+    gDecided=true;
+    gHoriz=Math.abs(dx)>Math.abs(dy)*1.4;                          // ¿es un swipe horizontal o un scroll vertical?
+    if(gHoriz) panelsEl.classList.add("dragging");
   }
-},{passive:true});
+  if(!gHoriz) return;                                              // gesto vertical → dejar scrollear
+  const base=-activePanel*33.333, extra=(dx/window.innerWidth)*33.333;
+  panelsEl.style.transform="translateX(calc("+base+"% + "+extra+"%))";
+}
+function gEnd(x){
+  if(!gActive){ return; }
+  gActive=false; panelsEl.classList.remove("dragging"); panelsEl.style.cursor="";
+  if(!gDecided||!gHoriz){ updatePanelsPosition(); return; }        // no fue swipe → no hacer nada
+  const dx=x-gStartX;
+  if(dx>SWIPE_THRESHOLD && activePanel>0) goPanel(activePanel-1);
+  else if(dx<-SWIPE_THRESHOLD && activePanel<2) goPanel(activePanel+1);
+  else updatePanelsPosition();
+}
 
-// Mouse drag events
-let mouseDown=false;
-panelsEl.addEventListener("mousedown",e=>{
-  mouseDown=true;isDragging=true;
-  dragStartX=e.clientX;dragStartY=e.clientY;
-  panelsEl.classList.add("dragging");
-  panelsEl.style.cursor="grabbing";
-});
-
-document.addEventListener("mousemove",e=>{
-  if(!mouseDown||!isDragging)return;
-  dragCurrentX=e.clientX;
-  const dx=dragCurrentX-dragStartX;
-  const baseShift=-activePanel*33.333;
-  const extra=(dx/window.innerWidth)*33.333;
-  panelsEl.style.transform="translateX(calc("+baseShift+"% + "+extra+"%))";
-});
-
-document.addEventListener("mouseup",e=>{
-  if(!mouseDown)return;
-  mouseDown=false;isDragging=false;
-  panelsEl.classList.remove("dragging");
-  panelsEl.style.cursor="";
-  const dx=dragCurrentX-dragStartX;
-  const dy=e.clientY-dragStartY;
-  if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.2){
-    if(dx>0 && activePanel>0) goPanel(activePanel-1);
-    else if(dx<0 && activePanel<2) goPanel(activePanel+1);
-    else updatePanelsPosition();
-  }else{
-    updatePanelsPosition();
-  }
-});
+// Touch
+panelsEl.addEventListener("touchstart",e=>gStart(e.touches[0].clientX,e.touches[0].clientY,e.target),{passive:true});
+panelsEl.addEventListener("touchmove", e=>gMove(e.touches[0].clientX,e.touches[0].clientY),{passive:true});
+panelsEl.addEventListener("touchend",  e=>gEnd(e.changedTouches[0].clientX),{passive:true});
+// Mouse
+panelsEl.addEventListener("mousedown",e=>{ gStart(e.clientX,e.clientY,e.target); if(gActive) panelsEl.style.cursor="grabbing"; });
+document.addEventListener("mousemove",e=>gMove(e.clientX,e.clientY));
+document.addEventListener("mouseup",  e=>gEnd(e.clientX));
 
 // ═══════════════════════════════════════════════════════════════════════
 //  RENDER ALL
@@ -1420,11 +1500,11 @@ function renderClienteCotizar(){
     ).join("")}</div>
     ${st.term>c.agentTerm?`<div class="note warn"><span class="note-icon">⏰</span><span>Cobras en ${st.term}d pero pagas al agente en ${c.agentTerm}d: usas tu caja.</span></div>`:""}
 
-    <div class="section-lbl">Tacticas</div>
+    <div class="section-lbl">Tácticas (te quedan)</div>
     <div class="tactics">
-      <button class="tactic ${st.tactics.tiempo?'used':''}" onclick="useTactic('tiempo')" ${st.tactics.tiempo?'disabled':''}>⏱️ Presion de tiempo</button>
-      <button class="tactic ${st.tactics.valor?'used':''}" onclick="useTactic('valor')" ${st.tactics.valor?'disabled':''}>⭐ Argumento de valor</button>
-      <button class="tactic ${st.tactics.anticipo?'used':''}" onclick="useTactic('anticipo')" ${st.tactics.anticipo?'disabled':''}>💵 Pago anticipado</button>
+      ${tacticBtn('tiempo','useTactic',st.tactics.tiempo)}
+      ${tacticBtn('valor','useTactic',st.tactics.valor)}
+      ${tacticBtn('anticipo','useTactic',st.tactics.anticipo)}
     </div>
 
     <div class="summary">
@@ -1561,11 +1641,11 @@ function renderAgenteNeg(){
     </div>
     <div class="note"><span class="note-icon">${ahorro>=0?'🟢':'🔴'}</span><span>vs mercado (${money(c.marketBase)}): ${ahorro>=0?'ahorras '+money(ahorro):'pagas '+money(-ahorro)+' de mas'}</span></div>
 
-    <div class="section-lbl">Tacticas</div>
+    <div class="section-lbl">Tácticas (te quedan)</div>
     <div class="tactics">
-      <button class="tactic ${an.tactics.farol?'used':''}" onclick="agentTactic('farol')" ${an.tactics.farol?'disabled':''}>🃏 Farol</button>
-      <button class="tactic ${an.tactics.volumen?'used':''}" onclick="agentTactic('volumen')" ${an.tactics.volumen?'disabled':''}>📦 Prometer volumen</button>
-      <button class="tactic ${an.tactics.prioridad?'used':''}" onclick="agentTactic('prioridad')" ${an.tactics.prioridad?'disabled':''}>⚡ Pedir prioridad</button>
+      ${tacticBtn('farol','agentTactic',an.tactics.farol)}
+      ${tacticBtn('volumen','agentTactic',an.tactics.volumen)}
+      ${tacticBtn('prioridad','agentTactic',an.tactics.prioridad)}
     </div>
 
     <div class="section-lbl">Plazo de pago al agente (max ${a.plazoMax}d)</div>
@@ -1725,9 +1805,13 @@ function resolveIncident(absorb){
   renderAll();
   if(!checkIncidents()) continuarFlujo();   // si hay más incidentes encola otro; si no, sigue
 }
-// Tras resolver incidentes, completa el avance de día que estaba pendiente.
+// Tras resolver incidentes/premios, completa el avance que estaba pendiente.
 function continuarFlujo(){
-  if(G._needNew){ G._needNew=false; if(G.cash<0) return gameOver(); newClient(); goPanel(1); renderAll(); }
+  if(!G._needNew) return;
+  if(checkTacticPrize()){ renderAll(); return; }   // si justo toca premio, mostralo antes del cliente nuevo
+  G._needNew=false;
+  if(G.cash<0) return gameOver();
+  newClient(); goPanel(1); renderAll();
 }
 
 function showRulesModal(){
@@ -1783,22 +1867,18 @@ function showFeedbackModal(manual=false){
   if(feedbackShown&&!manual)return;
   feedbackShown=true;
   if(feedbackTimeout)clearTimeout(feedbackTimeout);
-  const mins=Math.floor((Date.now()-G.startTime)/60000);
   const d=document.createElement('div');d.className='modal';
-  d.innerHTML=`<div class="modal-box">
-    <div class="modal-title">📝 Tu opinion importa</div>
-    <p style="font-size:13px;color:var(--txt2);margin-bottom:10px">Llevas ${mins} min jugando. Ayudanos a mejorar.</p>
-    <label style="font-size:12px;color:var(--muted)">Tu nombre:</label>
-    <input type="text" id="fbName" class="fb-input" placeholder="Ej: Forwarder777">
-    <label style="font-size:12px;color:var(--muted)">Puntuacion:</label>
-    <div class="rating" id="fbStars"><span class="star" data-v="1">☆</span><span class="star" data-v="2">☆</span><span class="star" data-v="3">☆</span><span class="star" data-v="4">☆</span><span class="star" data-v="5">☆</span></div>
+  d.innerHTML=`<div class="modal-box" style="padding:18px">
+    <div class="modal-title" style="margin-bottom:10px">📝 ¿Qué te pareció?</div>
+    <label style="font-size:12px;color:var(--muted)">Puntuación:</label>
+    <div class="rating" id="fbStars" style="margin:6px 0"><span class="star" data-v="1">☆</span><span class="star" data-v="2">☆</span><span class="star" data-v="3">☆</span><span class="star" data-v="4">☆</span><span class="star" data-v="5">☆</span></div>
     <input type="hidden" id="fbRating" value="0">
-    <label style="font-size:12px;color:var(--muted)">¿Volverias a jugar?</label>
-    <div class="seg" style="margin:5px 0"><button class="seg-btn" type="button" id="fbY">✅ Si</button><button class="seg-btn" type="button" id="fbN">❌ No</button><button class="seg-btn" type="button" id="fbM">🤔 Tal vez</button></div>
+    <label style="font-size:12px;color:var(--muted)">¿Volverías a jugar?</label>
+    <div class="seg" style="margin:4px 0 8px"><button class="seg-btn" type="button" id="fbY">✅ Sí</button><button class="seg-btn" type="button" id="fbN">❌ No</button><button class="seg-btn" type="button" id="fbM">🤔 Tal vez</button></div>
     <input type="hidden" id="fbAgain" value="">
     <label style="font-size:12px;color:var(--muted)">Comentarios:</label>
-    <textarea id="fbCom" rows="3" class="fb-input" placeholder="Me gusto... me confundi en..."></textarea>
-    <button class="modal-close" onclick="submitFeedback()">📤 Enviar</button>
+    <textarea id="fbCom" rows="2" class="fb-input" style="margin:4px 0 0" placeholder="Me gustó... me confundí en..."></textarea>
+    <button class="modal-close" style="margin-top:10px" onclick="submitFeedback()">📤 Enviar</button>
     <button class="modal-close ghost" onclick="this.closest('.modal').remove()">Cerrar</button>
   </div>`;
   document.body.appendChild(d);
@@ -1819,7 +1899,7 @@ function showFeedbackModal(manual=false){
 function submitFeedback(){
   const modal=document.querySelector('.modal');
   if(!modal)return;
-  const name=modal.querySelector('#fbName').value||'Anonimo';
+  const name='Anonimo';   // ya no pedimos nombre
   const rating=modal.querySelector('#fbRating').value||'0';
   const again=modal.querySelector('#fbAgain').value||'Sin responder';
   const comments=modal.querySelector('#fbCom').value||'';
