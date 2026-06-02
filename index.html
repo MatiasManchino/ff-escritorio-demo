@@ -472,6 +472,31 @@
   .intro-step .t{font-weight:700;font-size:13.5px}
   .intro-step .d{font-size:11.5px;color:var(--muted)}
 
+  /* ===== MODO AYUDA / TUTORIAL ===== */
+  .help-fab{
+    position:fixed;right:14px;bottom:72px;z-index:200;
+    width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;
+    background:var(--hub);color:#06222e;font-size:24px;font-weight:800;
+    box-shadow:0 6px 20px rgba(56,189,248,0.5);transition:transform .15s;
+  }
+  .help-fab:active{transform:scale(0.92)}
+  .help-fab.on{background:var(--warn);color:#2a1f08;animation:pulse 1.4s infinite}
+  /* Cuando el modo ayuda está activo, marco toda la app con un borde guía */
+  body.help-mode .app{box-shadow:inset 0 0 0 3px var(--warn)}
+  .help-banner{
+    position:fixed;top:0;left:0;right:0;z-index:201;
+    background:var(--warn);color:#2a1f08;text-align:center;
+    font-size:13px;font-weight:700;padding:8px 12px;line-height:1.3;
+  }
+  .help-tip{
+    position:fixed;left:12px;right:12px;bottom:140px;z-index:202;
+    background:var(--panel);border:2px solid var(--hub);border-radius:var(--radius);
+    padding:14px 16px;box-shadow:var(--shadow-lg);animation:slideUp .2s ease;
+  }
+  .help-tip .ht-title{font-size:16px;font-weight:800;color:var(--hub);margin-bottom:4px;display:flex;align-items:center;gap:8px}
+  .help-tip .ht-body{font-size:14px;color:var(--txt2);line-height:1.55}
+  .help-tip .ht-close{margin-top:10px;width:100%;background:var(--hub);color:#06222e;border:none;border-radius:var(--radius-sm);padding:11px;font-weight:700;cursor:pointer}
+
   /* ===== RESPONSIVE ===== */
   @media(min-width:640px){
     .panel{padding:0 20px 100px}
@@ -528,6 +553,9 @@
       <span class="dot-label">Clientes</span>
     </div>
   </div>
+
+  <!-- Botón flotante de AYUDA (modo tutorial) -->
+  <button class="help-fab" id="helpFab" onclick="toggleHelp()">❓</button>
 </div>
 
 <script>
@@ -1991,6 +2019,103 @@ function submitFeedback(){
   alert('¡Gracias por tu feedback! Se guardo correctamente.');
   modal.remove();
 }
+
+// ═══════════════════════════════════════════════════════════════════════
+//  MODO AYUDA (tutorial: tocás un botón y te explica qué hace, sin ejecutarlo)
+// ═══════════════════════════════════════════════════════════════════════
+let helpMode=false;
+
+// Explicaciones en lenguaje súper simple (para nenes de 8-10 años).
+// La clave es un trozo de texto que aparece en el botón; busco la primera que coincida.
+const HELP=[
+  ["Buscar tarifa", {t:"🚢 Buscar tarifa con agentes", b:"Tocá acá para ir a ver a los AGENTES. Ellos son los que llevan tu carga en barcos, aviones o camiones. Te van a decir cuánto te cobran a vos. ¡Ese es tu costo! Cuanto más barato consigas, más plata te queda a vos."}],
+  ["Negociar", {t:"🤝 Negociar con un agente", b:"Abrís la charla con ese agente para hablar del precio. Adentro vas a poder pedirle que te lo deje más barato o usar trucos. ¡Como cuando regateás en una feria!"}],
+  ["Renegociar", {t:"🤝 Volver a negociar", b:"Volvés a hablar con ese agente para intentar mejorar lo que ya habías arreglado."}],
+  ["Pedir descuento", {t:"📉 Pedir descuento al agente", b:"Le pedís al agente: «¿me lo podés dejar más barato?». A veces te baja un poquito el precio. Pero ojo: si le pedís muchas veces y nunca le comprás, se cansa y no te baja más."}],
+  ["Tomar tarifa", {t:"✓ Aceptar el precio del agente", b:"Aceptás lo que te cobra ese agente. Ese va a ser tu costo. Después vas con el CLIENTE para venderle más caro y ganar la diferencia."}],
+  ["Ver otros agentes", {t:"← Mirar otros agentes", b:"Volvés a la lista para comparar. Algunos son más baratos pero fallan más; otros son más caros pero más seguros. ¡Vos elegís!"}],
+  ["Farol", {t:"🃏 Farol (mentirita)", b:"Le decís al agente «tengo otro más barato» aunque no sea verdad, para ver si te baja el precio. ¡Puede salir bien… o puede que no te crea y se enoje un poco!"}],
+  ["Prometer volumen", {t:"📦 Prometer mucha carga", b:"Le decís al agente «si me hacés precio, te traigo MÁS cargas después». Como le gusta el negocio, te baja un poco y se pone más contento con vos."}],
+  ["Pedir prioridad", {t:"⚡ Pedir que salga rápido", b:"Le pedís al agente que tu carga viaje primero y segura. Cuesta un poco más, pero llega antes. ¡Buenísimo para clientes apurados!"}],
+  ["Enviar cotiz", {t:"📨 Enviar tu precio al cliente", b:"Le mandás al cliente el precio que le ponés. Él puede decir «¡SÍ!», pedirte que se lo dejes más barato, o irse con otro. ¡Es el momento clave!"}],
+  ["Cambiar agente", {t:"🚢 Cambiar de agente", b:"Volvés a los agentes por si querés elegir otro que te salga mejor antes de venderle al cliente."}],
+  ["No puedo ayudarte", {t:"🙇 Dejar pasar esta carga", b:"A veces el negocio no te conviene (perdés plata o es muy arriesgado). Con este botón le decís amablemente al cliente que esta vez no podés. ¡Decir que no también es ser inteligente!"}],
+  ["Preguntar cuánto", {t:"🎯 Preguntar cuánto quiere pagar", b:"Le preguntás al cliente qué precio tiene pensado. Casi nunca te lo dice (¡son vivos!) y a veces se enoja. Pero si te lo dice, ¡sabés a qué número apuntar!"}],
+  ["Presión de tiempo", {t:"⏱️ Apurar al cliente", b:"Le decís «¡cerremos hoy que los precios suben!». Si el cliente está apurado, funciona genial. Si NO tiene apuro, se enoja. ¡Usalo con los apurados!"}],
+  ["Argumento de valor", {t:"⭐ Mostrar que sos el mejor", b:"Le explicás al cliente que vos das un servicio buenísimo. A los clientes que valoran la calidad les encanta. A los que solo miran el precio, no les importa."}],
+  ["Pago anticipado", {t:"💵 Descuento por pagar ya", b:"Le ofrecés al cliente: «si me pagás ahora mismo, te hago un descuentito». Ganás un poco menos, pero cobrás enseguida y es más seguro."}],
+  ["Aceptar", {t:"✓ Aceptar lo que pide el cliente", b:"El cliente te hizo una propuesta (un precio o un plazo). Si tocás acá, le decís que SÍ y cerrás el trato. ¡A cobrar!"}],
+  ["Contraofertar", {t:"🤝 Hacer otra oferta", b:"No te convence lo que pide el cliente, así que volvés a la pantalla para cambiar tu precio o tus condiciones e intentar de nuevo."}],
+  ["Rechazar", {t:"✕ No aceptar", b:"Le decís que no a la propuesta del cliente y dejás pasar esta carga."}],
+  ["Siguiente cliente", {t:"➡️ Pasar al que sigue", b:"Esta carga ya terminó. Tocás acá y llega un cliente nuevo con otra carga para que vuelvas a empezar."}],
+  ["Avanzar tiempo", {t:"⏩ Que pasen los días", b:"Hacés que pase el tiempo. Así llegan los días en que cobrás tus operaciones… ¡pero también pagás los gastos! Usalo cuando estés esperando que te paguen."}],
+  ["Ir a Clientes", {t:"🏢 Ir con el cliente", b:"Ya tenés tu costo del agente. Ahora vas con el cliente a ponerle TU precio (más caro) y ganar la diferencia."}],
+  ["Cotizar al cliente", {t:"💰 Ponerle precio al cliente", b:"Vas a la pantalla donde elegís cuánto le cobrás al cliente."}],
+  ["Operaciones en curso", {t:"📋 Tus envíos en camino", b:"Acá ves todas las cargas que ya cerraste y que están viajando. Te dice cuándo vas a cobrar cada una."}],
+  ["Como jugar", {t:"📖 Las reglas", b:"Te muestra las reglas del juego explicadas fácil."}],
+  ["Reiniciar", {t:"🔄 Empezar de nuevo", b:"Borra todo y empezás el juego otra vez desde cero."}],
+  ["Jugar de nuevo", {t:"🔄 Otra partida", b:"Empezás una partida nueva desde el principio."}],
+  ["Opinar", {t:"💬 Contarnos qué te pareció", b:"Nos dejás tu opinión del juego para que lo hagamos mejor. ¡Gracias!"}],
+];
+// Explicaciones para cosas que NO son botones de texto (palancas, dots, etc.)
+function helpFor(el){
+  // dots de navegación
+  const dot=el.closest('.nav-dot');
+  if(dot){ const i=dot.dataset.panel; return {t:"🔵 Cambiar de pantalla",
+    b:"Tocando estos puntitos (o deslizando con el dedo) viajás entre las 3 pantallas: AGENTES (los que llevan la carga), ESCRITORIO (el resumen) y CLIENTES (los que te pagan)."}; }
+  // slider de precio
+  if(el.type==="range") return {t:"🎚️ La barra del precio",
+    b:"Movés esta barrita para elegir cuánto le cobrás al cliente. Hacia la derecha = más caro = ganás más, pero es más difícil que te diga que sí. ¡Hay que encontrar el punto justo!"};
+  // botones de plazo de pago
+  if(el.closest('.seg')) return {t:"📅 Cuándo te pagan",
+    b:"Elegís en cuántos días te paga el cliente. «Contado» es ya. Más días le gustan al cliente, pero vos tardás más en tener la plata. ¡Cuidado con quedarte sin plata en la mano!"};
+  // tarjeta de agente
+  if(el.closest('.agent-card')) return {t:"🚢 Un agente",
+    b:"Esta es la oferta de un agente: su precio, cuántos días tarda, qué tan confiable es y qué tan amigo tuyo es. El más barato a veces trae más problemas. Tocá «Negociar» para hablar con él."};
+  // HUD cells
+  const cell=el.closest('.hud-cell');
+  if(cell){ const lbl=(cell.querySelector('.hud-lbl')||{}).textContent||"";
+    if(/Caja/i.test(lbl)) return {t:"💵 Tu plata",b:"Es la plata que tenés ahora mismo. Si llega a cero, perdés. ¡Cuidala!"};
+    if(/Repu/i.test(lbl)) return {t:"😊 Tu fama",b:"Es qué tan bien te portás. Va de -100 a +100. Cumplí y sube; fallá y baja. Si llega a -100, nadie quiere trabajar con vos y perdés."};
+    if(/Dia/i.test(lbl))  return {t:"📅 El día",b:"Te dice en qué día del juego estás. El tiempo pasa cuando atendés clientes o tocás «avanzar tiempo»."};
+    if(/Ops/i.test(lbl))  return {t:"📋 Envíos en camino",b:"Cuántas cargas tenés viajando ahora. Tocá acá para ver el detalle de cada una y cuándo cobrás."};
+  }
+  return null;
+}
+function toggleHelp(){
+  helpMode=!helpMode;
+  document.getElementById('helpFab').classList.toggle('on',helpMode);
+  document.body.classList.toggle('help-mode',helpMode);
+  document.getElementById('helpBanner')?.remove();
+  document.querySelector('.help-tip')?.remove();
+  if(helpMode){
+    const b=document.createElement('div');b.className='help-banner';b.id='helpBanner';
+    b.innerHTML="🟡 MODO AYUDA: tocá cualquier botón y te explico qué hace (no va a pasar nada en el juego). Tocá el ❓ otra vez para salir.";
+    document.body.appendChild(b);
+  }
+}
+function showHelpTip(info){
+  document.querySelector('.help-tip')?.remove();
+  const d=document.createElement('div');d.className='help-tip';
+  d.innerHTML=`<div class="ht-title">${info.t}</div><div class="ht-body">${info.b}</div>
+    <button class="ht-close" onclick="this.closest('.help-tip').remove()">¡Entendí! 👍</button>`;
+  document.body.appendChild(d);
+}
+// Interceptor en fase de CAPTURA: si el modo ayuda está activo, explica en vez de ejecutar.
+document.addEventListener('click',function(e){
+  if(!helpMode) return;
+  if(e.target.closest('.help-fab,.help-tip,.help-banner')) return;  // estos sí funcionan normal
+  const el=e.target.closest('button,input[type=range],.nav-dot,.seg,.agent-card,.hud-cell');
+  if(!el) return;
+  e.preventDefault(); e.stopPropagation();
+  let info=helpFor(el);
+  if(!info){
+    const txt=(el.textContent||"").replace(/\s+/g," ").trim();
+    const hit=HELP.find(([k])=>txt.includes(k));
+    info = hit ? hit[1] : {t:"🔘 Este botón", b:"Tocalo (con la ayuda apagada) para usarlo. Salí del modo ayuda con el ❓ celeste."};
+  }
+  showHelpTip(info);
+},true);
 
 // ═══════════════════════════════════════════════════════════════════════
 //  INIT
