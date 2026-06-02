@@ -634,8 +634,12 @@ function newGame(){
     // Inventario de tácticas: arrancás con 1 de cada una (3 de venta + 3 de compra).
     // Usar una gasta 1. Cada PRIZE_EVERY cargas cerradas ganás una más.
     inv:{tiempo:1,valor:1,anticipo:1,farol:1,volumen:1,prioridad:1},
-    lastPrizeAt:0
+    lastPrizeAt:0,
+    // Memoria por agente: cuántas veces le hiciste bajar la tarifa y NO cerraste.
+    // Si se acumula, el agente se cansa y deja de bajar. Se resetea al cerrar con él.
+    haggleFail:{}, hagglePend:false
   };
+  AGENTES.forEach(a=>G.haggleFail[a.id]=0);
   AGENTES.forEach(a=>G.rel[a.id]=50);   // relación con agentes: sigue siendo 0..100 (aparte de la reputación)
   feedbackShown=false;
   if(feedbackTimeout) clearTimeout(feedbackTimeout);
@@ -646,6 +650,7 @@ function newGame(){
 }
 
 function newClient(){
+  G.hagglePend=false;   // nueva carga: arranca sin regateo pendiente
   const persona=pick(Object.values(PERSONAS));
   const base=pick(CARGOS);
   const scale=1+(G.rep-50)/120;
@@ -668,7 +673,7 @@ function newClient(){
     satisfaction:Math.max(15,Math.min(85,40+Math.round((G.rep-50)*0.4))),
     revealed:[], tactics:{tiempo:false,valor:false,anticipo:false},
     tacticBonus:0, counter:null, counterTerm:null,
-    clientMsg:base.historia, finished:false
+    clientMsg:base.historia, finished:false, targetAsked:false, targetKnown:null
   };
   buildOffers();
 }
@@ -798,11 +803,38 @@ function declineClient(){
     G.rel[G.st.cargo.agentId]=Math.max(0,G.rel[G.st.cargo.agentId]-3);
     log("Soltaste la tarifa de "+agentById(G.st.cargo.agentId).nombre+": quedó algo molesto.");
   }
+  registrarRegateoFallido();        // si le hiciste bajar y no cerraste, lo recuerda
   G.st.finished=true;
   addRep(-1);                       // abandonar a tiempo cuesta menos que fallar una entrega
   G.st.clientMsg=pick(frases);
   log("🙇 Dejaste pasar a "+G.st.cargo.co+". (reputación -1)");
   goPanel(2);                       // mostrar la pantalla de cliente (queda en "perdido")
+  renderAll();
+}
+
+// Preguntarle al cliente cuánto está dispuesto a pagar (su "target").
+// Casi nunca lo dice; si no, puede molestarse y bajarte la reputación.
+function askTarget(){
+  const st=G.st; if(st.finished||st.targetAsked) return;
+  st.targetAsked=true;
+  const p=st.persona;
+  // Probabilidad de que afloje el número: el Confiable un poco más, el Rata casi nunca.
+  const tellChance = p.key==="confiable"?0.35 : p.key==="rata"?0.12 : 0.22;
+  if(Math.random()<tellChance){
+    // Te da una idea (un poco por debajo de su techo real, para que igual tengas que ajustar).
+    st.targetKnown=Math.round(st.cargo.clientMaxViable*rnd(0.90,0.98));
+    st.clientMsg="“Mirá, te soy sincero: yo manejaba un número cercano a "+money(st.targetKnown)+". Si te acercás, cerramos.”";
+    flash("El cliente te soltó su target (~"+money(st.targetKnown)+").");
+  }else if(Math.random()<0.5){
+    // Se molesta: no le gustó que le preguntes.
+    st.anger++; addRep(-2);
+    st.clientMsg="“No te voy a decir cuánto tengo, pasame TU precio. No me gusta esta jugada.”";
+    flash("Al cliente le molestó la pregunta. (reputación -2)");
+  }else{
+    // Simplemente esquiva.
+    st.clientMsg="“No tengo un número fijo, mandame tu mejor propuesta y vemos.”";
+    flash("El cliente esquivó la pregunta del target.");
+  }
   renderAll();
 }
 
@@ -827,7 +859,11 @@ function closeDeal(){
   const risk=estimateRisk(st);
   const payDay=G.day+st.term+Math.round(rnd(0,3));
   const costDay=G.day+Math.min(st.cargo.agentTerm,st.term||999);
-  if(st.cargo.agentId)G.rel[st.cargo.agentId]=Math.min(100,G.rel[st.cargo.agentId]+2);
+  if(st.cargo.agentId){
+    G.rel[st.cargo.agentId]=Math.min(100,G.rel[st.cargo.agentId]+2);
+    G.haggleFail[st.cargo.agentId]=0;   // cerraste: el agente te perdona los regateos previos
+  }
+  G.hagglePend=false;
   G.ops.push({co:st.cargo.co,price:st.price,costo:st.cargo.costo,risk,payDay,costDay,costPaid:false,agentId:st.cargo.agentId});
   log("✅ Cerraste "+st.cargo.co+" a "+money(st.price)+" (margen "+Math.round(m*100)+"%). Cobras en "+st.term+"d.");
   renderAll();
@@ -837,11 +873,23 @@ function loseDeal(msg){
   const st=G.st;
   st.finished=true;
   G.lost++;
+  registrarRegateoFallido();        // si regateaste con el agente y no cerraste, lo recuerda
   // Una carga que NO cerraste pesa poco en tu fama (pero suma si se repite).
   addRep(-2);
   st.clientMsg=msg;
   log("❌ Perdiste a "+st.cargo.co+". (reputación -2)");
   renderAll();
+}
+
+// Si en esta operación le pediste rebaja a un agente y NO cerraste, el agente
+// lo recuerda: a la 2da/3ra vez deja de bajarte la tarifa.
+function registrarRegateoFallido(){
+  const id=G.st.cargo.agentId;
+  if(G.hagglePend && id){
+    G.haggleFail[id]=(G.haggleFail[id]||0)+1;
+    if(G.haggleFail[id]>=2) log(agentById(id).nombre+" ya no te va a bajar la tarifa fácil: le hiciste perder tiempo.");
+  }
+  G.hagglePend=false;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -862,10 +910,19 @@ function openAgentNeg(agentId){
   renderAll();
 }
 
+// Frases de un agente que se cansó de que le pidas y no cierres.
+const AGENT_TIRED=["No puedo bajar más, ya estoy al límite.","Voy a pérdida con ese número, imaginate si bajo más.","Pregunté a gerencia y no me dieron el visto bueno.","Ya te bajé varias veces y no cerramos… así no puedo.","Es mi piso, de acá no me muevo."];
+
 function agentDescuento(){
   const an=G.aneg,a=agentById(an.agentId);
+  G.hagglePend=true;                       // pediste rebaja en esta negociación
+  // Si ya te cansó de regatear sin cerrar, NO baja más (memoria entre negociaciones).
+  if((G.haggleFail[an.agentId]||0)>=2){
+    an.msg=pick(AGENT_TIRED);
+    renderAll();return;
+  }
   if(an.round>=3){
-    an.msg="Ya te di mi mejor numero, "+a.nombre.split(' ')[0]+" no baja mas.";
+    an.msg="Ya te di mi mejor número, "+a.nombre.split(' ')[0]+" no baja más.";
     G.rel[an.agentId]=Math.max(0,G.rel[an.agentId]-2);
     renderAll();return;
   }
@@ -876,7 +933,7 @@ function agentDescuento(){
     an.msg="Puedo llegar a "+money(nuevo)+". Es un esfuerzo.";
     G.rel[an.agentId]=Math.max(0,G.rel[an.agentId]-1);
   }else{
-    an.msg="Imposible bajar mas, es mi piso.";
+    an.msg=pick(AGENT_TIRED);
     G.rel[an.agentId]=Math.max(0,G.rel[an.agentId]-2);
   }
   renderAll();
@@ -1510,6 +1567,8 @@ function renderClienteCotizar(){
 
     ${st.revealed.length?`<div class="note"><span class="note-icon">💡</span><span>${st.revealed[st.revealed.length-1]}</span></div>`:""}
     <div class="note ${m<0.13||acc<0.4?'warn':''}"><span class="note-icon">💬</span><span>${advice(st,acc,risk.total,m)}</span></div>
+    ${st.targetKnown?`<div class="note" style="background:var(--good-bg);border:1px solid rgba(74,222,128,0.2)"><span class="note-icon">🎯</span><span>El cliente apunta a <b>${money(st.targetKnown)}</b>. Acercate a ese número.</span></div>`
+      :`<div class="btn-row" style="margin-top:4px"><button class="btn btn-ghost" onclick="askTarget()" ${st.targetAsked?'disabled':''}>${st.targetAsked?'Ya le preguntaste':'🎯 Preguntar cuánto quiere pagar'}</button></div>`}
 
     <div class="section-lbl">Plazo de pago</div>
     <div class="seg">${[0,15,30,45,60].map(d=>
