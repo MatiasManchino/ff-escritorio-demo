@@ -10,7 +10,17 @@
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   body{margin:0;background:radial-gradient(120% 80% at 50% 0%,#0d1830 0%,#070d18 60%);color:var(--txt);
        font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:15px;line-height:1.45;min-height:100vh}
-  .wrap{max-width:480px;margin:0 auto;padding:10px 12px 50px}
+  .wrap{max-width:480px;margin:0 auto;padding:8px 12px 50px}
+
+  /* TABS de navegación (swipe Instagram) */
+  .tabs{display:flex;gap:6px;margin-bottom:8px;align-items:center}
+  .tab{flex:1;text-align:center;padding:9px 4px;border-radius:10px;background:var(--panel);border:1px solid var(--line);
+       font-size:12px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .15s;position:relative}
+  .tab.on{color:var(--txt)}
+  .tab.on.agente{background:#1a1430;border-color:var(--violet);color:var(--violet)}
+  .tab.on.cliente{background:#2a1a0c;border-color:var(--accent);color:var(--accent)}
+  .tab .badge{position:absolute;top:-5px;right:6px;background:var(--bad);color:#fff;font-size:9px;border-radius:8px;padding:1px 5px}
+  .swipe-hint{font-size:10px;color:var(--muted);text-align:center;margin:-4px 0 8px}
 
   /* HUD compacto */
   .hud{display:flex;gap:7px;margin-bottom:10px}
@@ -21,7 +31,8 @@
   .hud .cell.btn{cursor:pointer} .hud .cell.btn:active{transform:scale(.97)}
 
   .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px;
-        box-shadow:0 8px 30px rgba(0,0,0,.35)}
+        box-shadow:0 8px 30px rgba(0,0,0,.35);animation:slidein .18s ease}
+  @keyframes slidein{from{opacity:.4;transform:translateX(var(--from,0))}to{opacity:1;transform:none}}
   .step{font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px}
   .step.violet{color:var(--violet)}
 
@@ -76,12 +87,26 @@
   .summary .op{font-size:13px;color:var(--muted)} .summary s{text-decoration:none}
   .summary .sn{font-size:17px;font-weight:800;display:block}
 
+  /* tarjetas de agente */
+  .agent-card{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:11px;margin:8px 0}
+  .agent-card.sel{border-color:var(--violet)}
+  .agent-head{display:flex;align-items:center;gap:9px;margin-bottom:6px}
+  .agent-head .ava{font-size:22px}
+  .agent-head .nm{font-weight:700;font-size:15px}
+  .agent-head .rel{margin-left:auto;font-size:10px;color:var(--muted);text-align:right}
+  .agent-stats{display:flex;gap:8px;font-size:11px;color:var(--muted);flex-wrap:wrap;margin-bottom:8px}
+  .agent-stats b{color:var(--txt)}
+  .agent-price{font-size:20px;font-weight:800;color:var(--violet)}
+  .relbar{height:5px;background:#0e1830;border-radius:4px;overflow:hidden;margin-top:3px;width:60px;margin-left:auto}
+  .relbar>i{display:block;height:100%;background:var(--violet)}
+
   .actions{display:flex;gap:9px;margin-top:12px}
   .actions button{flex:1;border:none;border-radius:12px;padding:14px 8px;font-size:14px;font-weight:700;cursor:pointer}
   .actions button:active{transform:scale(.98)}
   .b-go{background:var(--accent);color:#1a1206}.b-ok{background:var(--good);color:#06210f}
   .b-no{background:#21304a;color:var(--txt)}.b-counter{background:var(--warn);color:#2a2206}
   .b-ghost{background:#1a2740;color:var(--muted);flex:.7}
+  .b-violet{background:var(--violet);color:#150a2e}
 
   .ops-row{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid #16233a;font-size:13px}.ops-row:last-child{border-bottom:none}
   .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
@@ -92,21 +117,21 @@
   .center{text-align:center}.big{font-size:24px;font-weight:800;margin:8px 0}.tip{color:var(--muted);font-size:12px;margin-top:8px}
 
   /* MODALES */
-  .modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.95);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
   .modal-content{background:var(--panel);border:1px solid var(--line);border-radius:20px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;padding:20px}
   .modal-content h2{color:var(--accent);margin-top:0}
   .modal-content h3{color:var(--info);font-size:16px;margin:15px 0 8px}
-  .modal-content hr{border-color:var(--line);margin:12px 0}
   .modal-close{background:var(--accent);color:#1a1206;border:none;border-radius:12px;padding:12px;font-weight:700;cursor:pointer;width:100%;margin-top:16px}
   .rating{display:flex;gap:8px;justify-content:center;margin:10px 0}
-  .star{cursor:pointer;font-size:28px;color:var(--muted);transition:color 0.1s}
-  .star.selected{color:var(--warn)}
+  .star{cursor:pointer;font-size:28px;color:var(--muted)}
   .feedback-input{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px;color:var(--txt);font-family:inherit;margin:8px 0}
   .feedback-input:focus{outline:none;border-color:var(--accent)}
 </style>
 </head>
 <body>
 <div class="wrap">
+  <div class="tabs" id="tabs"></div>
+  <div class="swipe-hint" id="swipehint"></div>
   <div class="hud" id="hud"></div>
   <div id="screen"></div>
   <div class="log" id="log"></div>
@@ -114,8 +139,12 @@
 
 <script>
 /* ════════════════════════════════════════════════════════════════════════
-   FREIGHT FORWARDER — "El Escritorio"
-   Feedback automático a los 5 minutos que se guarda en Google Sheets
+   FREIGHT FORWARDER — "El Escritorio"  ·  v3 (Cliente ↔ Agente, swipe)
+   Loop real del forwarder:
+     1) llega consulta del cliente  →  2) buscás tarifa con AGENTES (swipe ←)
+     3) negociás el costo con el agente  →  4) volvés al CLIENTE (swipe →)
+     5) armás cotización y negociás la venta  →  6) cerrás  →  7) operás y cobrás.
+   Se preserva toda la lógica de cliente, float, caja, reputación, ops y feedback.
    ════════════════════════════════════════════════════════════════════════ */
 const $=id=>document.getElementById(id);
 const clamp01=x=>Math.max(0,Math.min(1,x));
@@ -123,22 +152,14 @@ const rnd=(a,b)=>a+Math.random()*(b-a);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 const money=n=>"$"+Math.round(n).toLocaleString("es-AR");
 
-// ========== FUNCIÓN QUE GUARDA EL FEEDBACK EN GOOGLE SHEETS ==========
-const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyOMG6IUEs3Z5gBkU-o0oeUTqXRci83slZjvAWEvf1axCzqh-6jLIMfwIoVeYNkh8kX/exec';
-
+// ========== FEEDBACK (Google Sheets) ==========
+const GOOGLE_SCRIPT_URL='https://script.google.com/macros/s/AKfycbyOMG6IUEs3Z5gBkU-o0oeUTqXRci83slZjvAWEvf1axCzqh-6jLIMfwIoVeYNkh8kX/exec';
 function guardarFeedback(entry){
-  fetch(GOOGLE_SCRIPT_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(entry)
-  });
-  alert('✅ ¡Gracias por tu feedback! Se ha guardado correctamente.');
+  fetch(GOOGLE_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(entry)});
+  alert('✅ ¡Gracias por tu feedback! Se guardó correctamente.');
 }
 
-// ── Personalidades (ocultas; se infieren) ───────────────────────────────
+// ── Personalidades de CLIENTE (ocultas; se infieren) ────────────────────
 const PERSONAS={
   rata:     {key:"rata",nombre:"El Rata",emoji:"😒",priceSens:90,urgency:20,serviceVal:10,maxRounds:3,concession:0.06,angerThreshold:6,targetMult:1.05,prefTerm:60,hints:["Solo le importa el número.","De los que lloran el precio."]},
   apurado:  {key:"apurado",nombre:"El Apurado",emoji:"⏰",priceSens:30,urgency:90,serviceVal:60,maxRounds:2,concession:0.15,angerThreshold:5,targetMult:1.30,prefTerm:0,hints:["Tiene mucha urgencia.","Cada día de demora le cuesta plata."]},
@@ -146,22 +167,36 @@ const PERSONAS={
 };
 // ── Cargas con CONTEXTO/HISTORIA ────────────────────────────────────────
 const CARGOS=[
-  {co:"Bodega Los Andes",op:"Exportación",merc:"Vinos (reefer)",desc:"3x40'HC",ruta:"Mendoza → Miami",modo:"maritimo",costo:5200,urgente:false,
-   historia:"“Exportamos a Miami hace tres años. La cosecha salió excelente y el importador ya tiene los pedidos. Necesitamos que llegue en condiciones.”",motivo:"Cumplir con su importador de siempre."},
-  {co:"Minera Cerro Grande",op:"Importación",merc:"Repuestos críticos",desc:"850 kg",ruta:"Santiago → Lima",modo:"aereo",costo:4500,urgente:true,
-   historia:"“La mina está PARADA. Perdemos USD 120.000 por día. Necesitamos la pieza hoy, no mañana. El precio es lo de menos.”",motivo:"Frenar una pérdida enorme por día."},
-  {co:"AgroServicios SRL",op:"Importación",merc:"Cosechadora 12,5 t",desc:"Sobredimensionada",ruta:"Córdoba → Río Cuarto",modo:"terrestre",costo:2835,urgente:false,
-   historia:"“Compré la cosechadora más grande de mi vida. La necesito en el campo antes de la cosecha, pero no me sobra un peso. Ya me cotizaron más barato.”",motivo:"Llegar a la cosecha sin gastar de más."},
-  {co:"Estudio Varela",op:"Importación",merc:"Muebles de diseño",desc:"18 CBM",ruta:"Milano → Buenos Aires",modo:"maritimo",costo:5800,urgente:false,
-   historia:"“Importo muebles italianos para un showroom que abre en 6 semanas. Son la pieza central. Busco un servicio premium, no el precio más bajo.”",motivo:"Que las piezas lleguen perfectas y a tiempo."},
-  {co:"Flores del Valle",op:"Exportación",merc:"Rosas (cadena de frío)",desc:"1.800 kg",ruta:"Medellín → Miami",modo:"aereo",costo:2900,urgente:true,
-   historia:"“Exportamos flores perecederas dos veces por semana. Si se corta la cadena de frío, es pérdida total. Quiero precio fijo todo el año.”",motivo:"Que la flor llegue fresca, sí o sí."},
-  {co:"TechSur S.A.",op:"Importación",merc:"Electrónica",desc:"2x40'HC",ruta:"Shanghái → Buenos Aires",modo:"maritimo",costo:5600,urgente:false,
-   historia:"“Necesitamos importar esta carga. Es una operación importante para nosotros y estamos evaluando varias propuestas.”",motivo:"Conseguir la mejor relación precio/servicio."},
-  {co:"Pesquera Austral",op:"Exportación",merc:"Langostinos premium",desc:"900 kg",ruta:"Trelew → Madrid",modo:"aereo",costo:3400,urgente:true,
-   historia:"“El restaurante de Madrid paga por la frescura. Si demora, el langostino pierde valor y nosotros el cliente. La velocidad lo es todo.”",motivo:"Mantener al comprador exigente de Madrid."},
-  {co:"Importadora Norte",op:"Importación",merc:"Repuestos de auto",desc:"1x40'",ruta:"Busan → Valparaíso",modo:"maritimo",costo:2600,urgente:false,
-   historia:"“Traemos repuestos todos los meses. Conozco los números del rubro mejor que vos. No me vas a vender humo.”",motivo:"Pagar lo justo, ni un peso más."},
+  {co:"Bodega Los Andes",op:"Exportación",merc:"Vinos (reefer)",desc:"3x40'HC",ruta:"Mendoza → Miami",modo:"maritimo",base:5200,urgente:false,
+   historia:"“Exportamos a Miami hace tres años. La cosecha salió excelente y el importador ya tiene los pedidos.”",motivo:"Cumplir con su importador de siempre."},
+  {co:"Minera Cerro Grande",op:"Importación",merc:"Repuestos críticos",desc:"850 kg",ruta:"Santiago → Lima",modo:"aereo",base:4500,urgente:true,
+   historia:"“La mina está PARADA. Perdemos USD 120.000 por día. Necesitamos la pieza hoy, no mañana.”",motivo:"Frenar una pérdida enorme por día."},
+  {co:"AgroServicios SRL",op:"Importación",merc:"Cosechadora 12,5 t",desc:"Sobredimensionada",ruta:"Córdoba → Río Cuarto",modo:"terrestre",base:2835,urgente:false,
+   historia:"“Compré la cosechadora más grande de mi vida. La necesito antes de la cosecha, pero no me sobra un peso.”",motivo:"Llegar a la cosecha sin gastar de más."},
+  {co:"Estudio Varela",op:"Importación",merc:"Muebles de diseño",desc:"18 CBM",ruta:"Milano → Buenos Aires",modo:"maritimo",base:5800,urgente:false,
+   historia:"“Importo muebles italianos para un showroom que abre en 6 semanas. Busco servicio premium, no el precio más bajo.”",motivo:"Que las piezas lleguen perfectas y a tiempo."},
+  {co:"Flores del Valle",op:"Exportación",merc:"Rosas (cadena de frío)",desc:"1.800 kg",ruta:"Medellín → Miami",modo:"aereo",base:2900,urgente:true,
+   historia:"“Exportamos flores dos veces por semana. Si se corta la cadena de frío, es pérdida total.”",motivo:"Que la flor llegue fresca, sí o sí."},
+  {co:"TechSur S.A.",op:"Importación",merc:"Electrónica",desc:"2x40'HC",ruta:"Shanghái → Buenos Aires",modo:"maritimo",base:5600,urgente:false,
+   historia:"“Necesitamos importar esta carga. Es importante para nosotros y estamos evaluando varias propuestas.”",motivo:"Mejor relación precio/servicio."},
+  {co:"Pesquera Austral",op:"Exportación",merc:"Langostinos premium",desc:"900 kg",ruta:"Trelew → Madrid",modo:"aereo",base:3400,urgente:true,
+   historia:"“El restaurante de Madrid paga por la frescura. Si demora, perdemos el comprador.”",motivo:"Mantener al comprador exigente de Madrid."},
+  {co:"Importadora Norte",op:"Importación",merc:"Repuestos de auto",desc:"1x40'",ruta:"Busan → Valparaíso",modo:"maritimo",base:2600,urgente:false,
+   historia:"“Traemos repuestos todos los meses. Conozco los números del rubro mejor que vos.”",motivo:"Pagar lo justo, ni un peso más."},
+];
+
+// ── AGENTES / PROVEEDORES (líneas, transportistas). Persisten con relación. ──
+// markup = sobre el costo de mercado.  conf = confiabilidad (afecta el riesgo operativo).
+// flex = cuánto cede al negociar.  plazoMax = crédito máximo que te puede dar.
+const AGENTES=[
+  {id:"oceanlink",nombre:"OceanLink",emoji:"🚢",tipo:"Flexible",modo:"maritimo",markup:1.06,conf:88,flex:0.09,plazoMax:30,transit:35,validez:7,desc:"Negocia bien, da crédito."},
+  {id:"asiacargo",nombre:"Asia Cargo",emoji:"🚢",tipo:"Agresivo",modo:"maritimo",markup:0.95,conf:62,flex:0.05,plazoMax:15,transit:46,validez:5,desc:"Muy barato, pero más problemas."},
+  {id:"bluesea",nombre:"BlueSea",emoji:"🚢",tipo:"Premium",modo:"maritimo",markup:1.17,conf:97,flex:0.03,plazoMax:30,transit:31,validez:10,desc:"Caro, máxima confiabilidad."},
+  {id:"pampa",nombre:"Pampa Log.",emoji:"🚚",tipo:"Amigo",modo:"terrestre",markup:1.03,conf:86,flex:0.11,plazoMax:45,transit:3,validez:7,desc:"Te financia y te salva."},
+  {id:"rutasur",nombre:"RutaSur",emoji:"🚚",tipo:"Agresivo",modo:"terrestre",markup:0.96,conf:64,flex:0.06,plazoMax:15,transit:4,validez:4,desc:"Barato, algo riesgoso."},
+  {id:"transandina",nombre:"TransAndina",emoji:"🚚",tipo:"Premium",modo:"terrestre",markup:1.13,conf:95,flex:0.04,plazoMax:30,transit:3,validez:10,desc:"Caro, muy seguro."},
+  {id:"skybridge",nombre:"SkyBridge Air",emoji:"✈️",tipo:"Flexible",modo:"aereo",markup:1.05,conf:90,flex:0.08,plazoMax:15,transit:3,validez:4,desc:"Aéreo flexible."},
+  {id:"andesair",nombre:"Andes Air",emoji:"✈️",tipo:"Premium",modo:"aereo",markup:1.18,conf:98,flex:0.03,plazoMax:30,transit:2,validez:7,desc:"Aéreo premium, carísimo."},
 ];
 
 const FRASES={
@@ -175,198 +210,62 @@ const LOSE={competidor:"“Me fui con otro forwarder, me hizo mejor número.”"
   paciencia:"“Me cansé de dar vueltas. Lo dejo acá.”",enojo:"“Así no se puede negociar. Chau.”"};
 
 let G;
-let feedbackTimeout = null; 
-let feedbackShown = false; 
-
-// ========== MODAL DE REGLAS (SOLO REGLAS, SIN ENCUESTA) ==========
-function openRules(){
-  const modalDiv = document.createElement('div');
-  modalDiv.className = 'modal';
-  modalDiv.id = 'rulesModal';
-  modalDiv.innerHTML = `
-    <div class="modal-content">
-      <h2>📋 Reglas del Juego</h2>
-      <p><strong>Freight Forwarder — El Escritorio</strong><br>Vendés servicios de logística. Cada cliente es un desafío distinto.</p>
-      
-      <h3>🎯 Cómo jugar</h3>
-      <p>1. Te llega una consulta con historia y contexto.<br>
-      2. Armás una cotización: precio, plazo de pago, modo de transporte.<br>
-      3. Podés usar tácticas para mejorar tus chances.<br>
-      4. Enviás → el cliente acepta, contraoferta o se va.<br>
-      5. Si cierras, la operación entra en tu cartera → cobrás más adelante (según plazo).<br>
-      6. Los gastos del mes se descuentan cada 30 días. ¡Cuidá la caja!</p>
-      
-      <h3>💰 Recursos</h3>
-      <p><strong>Caja:</strong> tu dinero disponible. Si llega a cero, perdés.<br>
-      <strong>Reputación ⭐:</strong> afecta qué clientes te llegan y el plazo que te da el proveedor.<br>
-      <strong>Capacidad:</strong> podés manejar hasta ${G?.capacity || 4} operaciones simultáneas.</p>
-      
-      <h3>🕵️ Tipos de cliente (ocultos)</h3>
-      <p>🐀 <strong>El Rata:</strong> solo le importa el precio. Plazos largos le gustan. Difícil de convencer con valor agregado.<br>
-      ⏰ <strong>El Apurado:</strong> necesita todo YA. La urgencia es su debilidad. Podés negociar mejor precio si le resolvés rápido.<br>
-      🤝 <strong>El Confiable:</strong> valora el servicio y la confianza. Un buen trato puede cerrar aunque no seas el más barato.</p>
-      <p><em>💡 Pistas: durante la negociación aparecen frases que revelan qué tipo es.</em></p>
-      
-      <h3>⚔️ Tácticas</h3>
-      <p><strong>⏱️ Presión de tiempo:</strong> funciona con el Apurado, enfurece al Rata.<br>
-      <strong>⭐ Argumento de valor:</strong> funciona con el Confiable, al Rata le da igual.<br>
-      <strong>💵 Pago anticipado:</strong> das descuento a cambio de cobrar ya. Siempre reduce riesgo.</p>
-      
-      <h3>📊 Gestión financiera</h3>
-      <p>• Le pagás al proveedor en <strong>${G?.supplierTerm || 15} días</strong> (mejora con reputación).<br>
-      • Cobrás al cliente según el plazo que acordaste.<br>
-      • Si cobrás después de pagar, ponés plata de tu bolsillo en el medio → riesgo de caja.</p>
-      
-      <h3>🎓 Consejos</h3>
-      <p>• No todas las cargas hay que tomarlas. A veces pasar es inteligente.<br>
-      • Los plazos de pago largos ayudan a cerrar pero duelen en tu caja.<br>
-      • El margen muy bajo (menos de 12%) te expone a que cualquier problema te deje en rojo.<br>
-      • Leé las historias: dan pistas sobre la personalidad.</p>
-      
-      <button id="closeRules" class="modal-close">Cerrar</button>
-    </div>
-  `;
-  document.body.appendChild(modalDiv);
-  modalDiv.querySelector('#closeRules').addEventListener('click', () => modalDiv.remove());
-  modalDiv.addEventListener('click', (e) => { if(e.target === modalDiv) modalDiv.remove(); });
-}
-
-// ========== MODAL DE FEEDBACK (SOLO ENCUESTA, SIN REGLAS) ==========
-function showFeedbackModal(manual=false){
-  if(feedbackShown && !manual) return;
-  feedbackShown = true;
-  if(feedbackTimeout) clearTimeout(feedbackTimeout);
-  
-  const modalDiv = document.createElement('div');
-  modalDiv.className = 'modal';
-  modalDiv.id = 'feedbackModal';
-  modalDiv.innerHTML = `
-    <div class="modal-content">
-      <h2>📝 Tu opinión importa</h2>
-      <p><strong>¡Gracias por jugar Freight Forwarder!</strong><br>Llevás ${Math.floor((Date.now() - G.startTime)/60000)} minutos jugando. Ayudanos a mejorar el juego con tu feedback.</p>
-      
-      <div id="feedbackForm">
-        <label>Tu nombre o alias:</label>
-        <input type="text" id="feedbackName" class="feedback-input" placeholder="Ej: Juan, Forwarder777">
-        
-        <label>¿Qué puntuación le das?</label>
-        <div class="rating" id="ratingStars">
-          <span class="star" data-val="1">☆</span>
-          <span class="star" data-val="2">☆</span>
-          <span class="star" data-val="3">☆</span>
-          <span class="star" data-val="4">☆</span>
-          <span class="star" data-val="5">☆</span>
-        </div>
-        <input type="hidden" id="feedbackRating" value="0">
-        
-        <label>¿Volverías a jugar?</label>
-        <div class="seg" style="margin:5px 0">
-          <button type="button" id="yesAgain" style="flex:1">✅ Sí</button>
-          <button type="button" id="noAgain" style="flex:1">❌ No</button>
-          <button type="button" id="maybeAgain" style="flex:1">🤔 Tal vez</button>
-        </div>
-        <input type="hidden" id="feedbackAgain" value="">
-        
-        <label>Comentarios (qué te gustó, qué cambiarías):</label>
-        <textarea id="feedbackComments" rows="4" class="feedback-input" placeholder="Me pareció... El Rata es muy difícil... Agregaría..."></textarea>
-        
-        <button id="submitFeedback" class="modal-close">📤 Enviar feedback</button>
-      </div>
-      <button id="closeFeedback" class="modal-close" style="background:var(--panel2);color:var(--txt);margin-top:8px">Cerrar sin enviar</button>
-    </div>
-  `;
-  document.body.appendChild(modalDiv);
-  
-  // Setup estrellas
-  const stars = modalDiv.querySelectorAll('.star');
-  const ratingInput = modalDiv.querySelector('#feedbackRating');
-  stars.forEach(star => {
-    star.addEventListener('click', () => {
-      const val = parseInt(star.dataset.val);
-      ratingInput.value = val;
-      stars.forEach((s,i) => {
-        if(i < val) s.innerHTML = '★';
-        else s.innerHTML = '☆';
-      });
-    });
-  });
-  
-  // Setup botones de "volvería a jugar"
-  const yesBtn = modalDiv.querySelector('#yesAgain');
-  const noBtn = modalDiv.querySelector('#noAgain');
-  const maybeBtn = modalDiv.querySelector('#maybeAgain');
-  const againInput = modalDiv.querySelector('#feedbackAgain');
-  const resetAgain = () => {
-    [yesBtn, noBtn, maybeBtn].forEach(b => b.style.background = 'var(--panel2)');
-  };
-  yesBtn.addEventListener('click', () => { resetAgain(); yesBtn.style.background = 'var(--good)'; againInput.value = 'Sí'; });
-  noBtn.addEventListener('click', () => { resetAgain(); noBtn.style.background = 'var(--bad)'; againInput.value = 'No'; });
-  maybeBtn.addEventListener('click', () => { resetAgain(); maybeBtn.style.background = 'var(--warn)'; againInput.value = 'Tal vez'; });
-  
-  // Submit feedback - AHORA SOLO GUARDA EN GOOGLE SHEETS
-  modalDiv.querySelector('#submitFeedback').addEventListener('click', () => {
-    const name = modalDiv.querySelector('#feedbackName').value || 'Anónimo';
-    const rating = ratingInput.value;
-    const again = againInput.value;
-    const comments = modalDiv.querySelector('#feedbackComments').value;
-    const minutesPlayed = Math.floor((Date.now() - G.startTime)/60000);
-    const stats = G ? `Día: ${G.day} | Deals cerrados: ${G.deals} | Reputación: ${G.rep} | Caja: ${money(G.cash)} | Minutos jugados: ${minutesPlayed}` : 'No disponible';
-    const feedbackEntry = {
-      name: name,
-      rating: rating || '0',
-      again: again || 'Sin responder',
-      comments: comments,
-      stats: stats,
-      date: new Date().toLocaleString()
-    };
-    guardarFeedback(feedbackEntry);
-    modalDiv.remove();
-    render();
-  });
-
-  modalDiv.querySelector('#closeFeedback').addEventListener('click', () => modalDiv.remove());
-  modalDiv.addEventListener('click', (e) => { if(e.target === modalDiv) modalDiv.remove(); });
-}
+let feedbackTimeout=null, feedbackShown=false;
 
 function newGame(){
   G={cash:6000,rep:50,day:1,deals:0,lost:0,problems:0,nextMonthly:30,monthly:1500,
-     ops:[],capacity:4,over:false,st:null,tierMsg:50,supplierTerm:15,ui:"consulta",
-     startTime:Date.now()};
-
-  feedbackShown = false;
+     ops:[],capacity:4,over:false,st:null,tierMsg:50,supplierTerm:15,
+     view:"cliente",ui:"intro",agentUi:"lista",aneg:null,startTime:Date.now(),
+     rel:{}};
+  AGENTES.forEach(a=>G.rel[a.id]=50);  // relación inicial con cada agente
+  feedbackShown=false;
   if(feedbackTimeout) clearTimeout(feedbackTimeout);
-  
-  feedbackTimeout = setTimeout(() => {
-    if(!G.over && !feedbackShown) {
-      showFeedbackModal();
-    }
-  }, 300000);
-  
-  log("Arrancás solo con "+money(G.cash)+". Gastos del mes: "+money(G.monthly)+". Plazo con proveedor: "+G.supplierTerm+"d.");
+  feedbackTimeout=setTimeout(()=>{ if(!G.over&&!feedbackShown) showFeedbackModal(); },300000);
+  log("Arrancás solo con "+money(G.cash)+". Gastos del mes: "+money(G.monthly)+".");
   newClient(); render();
 }
 
-// ── Resto de la lógica del juego ─────────────────────────────────────
+// ── Nueva consulta: SIN costo todavía (hay que conseguir tarifa con un agente) ──
 function newClient(){
   const persona=pick(Object.values(PERSONAS));
   const base=pick(CARGOS);
   const scale=1+(G.rep-50)/120;
-  let costo=Math.round(base.costo*scale*rnd(0.9,1.15));
-  let market="normal",flavor="",isVolume=false;
+  let marketBase=Math.round(base.base*scale*rnd(0.9,1.15));
+  let market="normal",flavor="";
   const r=Math.random();
-  if(r<0.18){market="barata";costo=Math.round(costo*0.78);flavor="🟢 Conseguiste una tarifa baja del proveedor: podés ser barato y ganar bien.";}
-  else if(r<0.40){market="cara";costo=Math.round(costo*1.28);flavor="🔴 Temporada alta: el flete está caro, va a costar cerrar.";}
-  else if(r<0.55){isVolume=true;costo=Math.round(costo*2.4);flavor="🔵 Contrato de VOLUMEN: mucha plata, pero quiere poco margen y te ocupa capacidad.";}
-  let viableMult = isVolume?rnd(1.10,1.18) : market==="cara"?rnd(1.06,1.22) : rnd(1.12,1.45);
-  if(Math.random()<0.15) viableMult=rnd(1.02,1.11);
-  const clientMaxViable=Math.round(costo*viableMult);
-  G.st={persona,cargo:{...base,costo,costoBase:costo,clientMaxViable,unwinnable:clientMaxViable<Math.round(costo*1.10),market,isVolume},
-    flavor,price:Math.round(costo*1.18),term:persona.prefTerm===0?0:30,transport:base.modo,round:0,anger:0,
-    satisfaction:Math.max(15,Math.min(85,40+Math.round((G.rep-50)*0.4))),revealed:[],
-    tactics:{tiempo:false,valor:false,anticipo:false},tacticBonus:0,counter:null,counterTerm:null,
-    clientMsg:base.historia,finished:false,seenDetails:false};
+  if(r<0.18){market="barata";marketBase=Math.round(marketBase*0.80);flavor="🟢 Mercado en baja: vas a conseguir tarifas buenas con los agentes.";}
+  else if(r<0.40){market="cara";marketBase=Math.round(marketBase*1.26);flavor="🔴 Temporada alta: las tarifas están caras en todos los agentes.";}
+  // viableMult = techo comercial del cliente (se aplica cuando ya tenés tu costo)
+  let viableMult = market==="cara"?rnd(1.10,1.30):rnd(1.16,1.50);
+  if(Math.random()<0.12) viableMult=rnd(1.04,1.12);  // a veces el negocio del cliente no da
+  G.st={
+    persona, cargo:{...base, marketBase, market, viableMult,
+      costo:null, agentId:null, conf:null, transit:null, agentTerm:G.supplierTerm,
+      prioridad:false, clientMaxViable:null, unwinnable:false},
+    flavor, price:null, term:persona.prefTerm===0?0:30, transport:base.modo, round:0, anger:0,
+    satisfaction:Math.max(15,Math.min(85,40+Math.round((G.rep-50)*0.4))), revealed:[],
+    tactics:{tiempo:false,valor:false,anticipo:false}, tacticBonus:0, counter:null, counterTerm:null,
+    clientMsg:base.historia, finished:false};
+  // ofertas de agentes para esta carga (según el modo que pide el cliente)
+  buildOffers();
 }
 
+// Construye las ofertas de los agentes disponibles para el modo de la carga.
+function buildOffers(){
+  const c=G.st.cargo;
+  const elegibles=AGENTES.filter(a=>a.modo===c.modo);
+  const roster=elegibles.length?elegibles:AGENTES.filter(a=>a.modo==="maritimo");
+  G.st.offers=roster.slice(0,3).map(a=>{
+    const rel=G.rel[a.id]??50;
+    const relMod=1+(60-rel)/300;               // mala relación = más caro
+    const price=Math.round(c.marketBase*a.markup*relMod*rnd(0.97,1.04));
+    return {agentId:a.id, price, floor:Math.round(c.marketBase*(a.markup-a.flex*2)),
+            transit:a.transit+Math.round(rnd(-2,3)), validez:a.validez, conf:a.conf};
+  });
+}
+function agentById(id){return AGENTES.find(a=>a.id===id);}
+
+// ════════ NEGOCIACIÓN CON CLIENTE (lógica preservada) ════════
 function acceptance(){
   const st=G.st,p=st.persona,costo=st.cargo.costo,target=costo*p.targetMult;
   if(st.price>st.cargo.clientMaxViable) return 0.01;
@@ -374,15 +273,18 @@ function acceptance(){
   if(st.price<=target) acc+=0.30*(1-st.price/target);
   else acc-=(p.priceSens/100)*Math.min((st.price-target)/target,0.5)*1.2;
   acc+=(st.term/60)*0.10; acc-=Math.abs(st.term-p.prefTerm)/60*0.12;
-  if(st.transport==="aereo") acc+=p.urgency>60?0.16:-0.08;
+  if(st.cargo.modo==="aereo") acc+=p.urgency>60?0.16:-0.08;
+  if(st.cargo.prioridad && p.urgency>60) acc+=0.10;   // prioridad comprada al agente ayuda al apurado
   acc+=(st.satisfaction/100)*0.15; acc-=st.anger*0.04; acc+=st.tacticBonus;
   return clamp01(acc);
 }
 function estimateRisk(st){
   const m=(st.price-st.cargo.costo)/st.cargo.costo;
-  let ops=0.08; if(m<0.15) ops+=0.18; else if(m<0.22) ops+=0.08;
-  ops+=st.persona.key==="rata"?0.12:st.persona.key==="apurado"?0.05:-0.04;
-  if(st.cargo.urgente) ops+=0.10; ops+=(1-st.satisfaction/100)*0.10;
+  let ops=0.06; if(m<0.15) ops+=0.18; else if(m<0.22) ops+=0.08;
+  ops+=st.persona.key==="rata"?0.10:st.persona.key==="apurado"?0.05:-0.03;
+  if(st.cargo.urgente) ops+=0.08; ops+=(1-st.satisfaction/100)*0.08;
+  ops+=(1-(st.cargo.conf??90)/100)*0.30;              // confiabilidad del AGENTE elegido
+  if(st.cargo.prioridad) ops-=0.06;
   ops=clamp01(Math.max(0.02,ops));
   let pay=st.term>0?(st.persona.key==="rata"?0.13:0.04)*(0.5+st.term/60):0;
   return {ops,pay:clamp01(pay),total:clamp01(ops+clamp01(pay))};
@@ -398,9 +300,9 @@ function sendQuote(){
     G.ui="respuesta"; return render();
   }
   const acc=acceptance();
-  if(Math.random()<acc) return closeDeal(true);
+  if(Math.random()<acc) return closeDeal();
   if(st.round>=st.persona.maxRounds){
-    if(Math.random()<acc*0.6) return closeDeal(true);
+    if(Math.random()<acc*0.6) return closeDeal();
     return loseDeal(LOSE.competidor);
   }
   const floor=st.cargo.costo*1.10,target=st.cargo.costo*st.persona.targetMult;
@@ -417,7 +319,7 @@ function sendQuote(){
   G.ui="respuesta"; render();
 }
 function acceptCounter(){const st=G.st; if(st.finished||(st.counter==null&&st.counterTerm==null)) return;
-  if(st.counter!=null) st.price=st.counter; if(st.counterTerm!=null) st.term=st.counterTerm; closeDeal(true);}
+  if(st.counter!=null) st.price=st.counter; if(st.counterTerm!=null) st.term=st.counterTerm; closeDeal();}
 function useTactic(t){
   const st=G.st,p=st.persona; if(st.finished||st.tactics[t]) return; st.tactics[t]=true;
   if(t==="tiempo"){ if(p.urgency>60){st.tacticBonus+=0.18;flash("Presión de tiempo: le picó la urgencia.");}
@@ -426,63 +328,154 @@ function useTactic(t){
                    else flash("Argumento de valor: a este cliente le importa el número, no sirvió."); }
   if(t==="anticipo"){ const floor=st.cargo.costo*1.10,nuevo=Math.max(floor,Math.round(st.price*0.92));
                       const bajo=st.price-nuevo; st.price=nuevo; st.term=0; st.tacticBonus+=0.10;
-                      flash("Pago anticipado: das "+money(bajo)+" de descuento a cambio de cobrar ya y sin riesgo de no-pago."); }
+                      flash("Pago anticipado: das "+money(bajo)+" de descuento a cambio de cobrar ya."); }
   render();
 }
-function rejectClient(){ if(!G.st.finished){ G.lost++; log("Rechazaste/pasaste a "+G.st.cargo.co+"."); nextOrEnd(); } }
+function rejectClient(){ if(!G.st.finished){ G.lost++;
+  if(G.st.cargo.agentId){ G.rel[G.st.cargo.agentId]=Math.max(0,G.rel[G.st.cargo.agentId]-3); log("Rechazaste tras reservar tarifa: "+agentById(G.st.cargo.agentId).nombre+" quedó molesto."); }
+  log("Pasaste a "+G.st.cargo.co+"."); nextOrEnd(); } }
 
 function closeDeal(){
   const st=G.st; st.finished=true; const m=(st.price-st.cargo.costo)/st.cargo.costo; G.deals++;
   const risk=estimateRisk(st);
-  const payDay=G.day+st.term+Math.round(rnd(0,3)), costDay=G.day+Math.min(G.supplierTerm,st.term);
-  G.ops.push({co:st.cargo.co,price:st.price,costo:st.cargo.costo,risk,payDay,costDay,costPaid:false});
-  log("✅ Cerraste "+st.cargo.co+" a "+money(st.price)+" (margen "+Math.round(m*100)+"%). Cobrás en "+st.term+"d · pagás proveedor en "+Math.min(G.supplierTerm,st.term)+"d.");
+  const payDay=G.day+st.term+Math.round(rnd(0,3)), costDay=G.day+Math.min(st.cargo.agentTerm,st.term||999);
+  if(st.cargo.agentId) G.rel[st.cargo.agentId]=Math.min(100,G.rel[st.cargo.agentId]+2);
+  G.ops.push({co:st.cargo.co,price:st.price,costo:st.cargo.costo,risk,payDay,costDay,costPaid:false,agentId:st.cargo.agentId});
+  log("✅ Cerraste "+st.cargo.co+" a "+money(st.price)+" (margen "+Math.round(m*100)+"%). Cobrás en "+st.term+"d.");
   G.ui="cerrado"; render();
 }
 function loseDeal(msg){const st=G.st; st.finished=true; G.lost++; G.rep=Math.max(0,G.rep-1); st.clientMsg=msg; G.ui="perdido"; log("❌ Perdiste a "+st.cargo.co+"."); render();}
 
 function resolveOps(){
-  for(const o of G.ops) if(!o.costPaid&&G.day>=o.costDay){o.costPaid=true;G.cash-=o.costo;log("⬇ Pagaste al proveedor "+money(o.costo)+" ("+o.co+").");}
+  for(const o of G.ops) if(!o.costPaid&&G.day>=o.costDay){o.costPaid=true;G.cash-=o.costo;log("⬇ Pagaste al agente "+money(o.costo)+" ("+o.co+").");}
   const due=G.ops.filter(o=>G.day>=o.payDay); G.ops=G.ops.filter(o=>G.day<o.payDay);
   for(const o of due){
     if(!o.costPaid){o.costPaid=true;G.cash-=o.costo;}
     if(Math.random()<o.risk.pay){G.problems++;G.rep=Math.max(0,G.rep-4);log("🟥 "+o.co+" NO PAGÓ. Perdiste "+money(o.costo)+".");}
-    else if(Math.random()<o.risk.ops){const ex=Math.round((o.price-o.costo)*rnd(0.5,1.4));G.cash+=o.price-ex;G.problems++;G.rep=Math.max(0,G.rep-2);log("🟧 Problema en "+o.co+": costo extra "+money(ex)+".");}
-    else {G.cash+=o.price;G.rep=Math.min(100,G.rep+1);log("💰 "+o.co+" pagó "+money(o.price)+". OK.");}
+    else if(Math.random()<o.risk.ops){const ex=Math.round((o.price-o.costo)*rnd(0.5,1.4));G.cash+=o.price-ex;G.problems++;G.rep=Math.max(0,G.rep-2);
+      if(o.agentId) G.rel[o.agentId]=Math.max(0,G.rel[o.agentId]-2);
+      log("🟧 Problema operativo en "+o.co+": costo extra "+money(ex)+".");}
+    else {G.cash+=o.price;G.rep=Math.min(100,G.rep+1); if(o.agentId) G.rel[o.agentId]=Math.min(100,G.rel[o.agentId]+3);
+      log("💰 "+o.co+" pagó "+money(o.price)+". Operación OK.");}
   }
 }
 function tick(d){ G.day+=d; resolveOps();
   while(G.day>=G.nextMonthly){ G.cash-=G.monthly; log("🧾 Gastos del mes: -"+money(G.monthly)); G.monthly=Math.round(G.monthly*1.04); G.nextMonthly+=30; }
   if(G.rep>=G.tierMsg+10){ G.tierMsg+=10;
-    if(G.supplierTerm<45){G.supplierTerm+=15;log("⭐ Reputación arriba: el proveedor te estiró el plazo a "+G.supplierTerm+"d. Más aire de caja.");}
+    if(G.supplierTerm<45){G.supplierTerm+=15;log("⭐ Reputación arriba: tus agentes te estiran el crédito.");}
     else log("⭐ Reputación arriba: llegan clientes y cargas más grandes."); }
 }
-function nextOrEnd(){ tick(Math.round(rnd(2,5))); if(G.cash<0) return gameOver(); newClient(); G.ui="consulta"; render(); }
+function nextOrEnd(){ tick(Math.round(rnd(2,5))); if(G.cash<0) return gameOver(); newClient(); G.view="cliente"; G.ui="consulta"; render(); }
 function advanceTime(){ tick(Math.round(rnd(3,7))); if(G.cash<0) return gameOver(); render(); }
 
-function words(acc,risk,m){
-  const comp = acc>0.6?["😀","Buena posibilidad de cierre"]:acc>0.4?["😐","Posible, conviene ajustar"]:["😟","Difícil de cerrar"];
-  const rk   = risk<0.2?["🛡️","Riesgo bajo"]:risk<0.4?["🛡️","Riesgo medio"]:["⚠️","Riesgo alto"];
-  const rent = m<0.12?["📉","Margen al límite"]:m<0.25?["📈","Margen aceptable"]:["💎","Margen alto"];
-  return {comp,rk,rent};
+// ════════ NEGOCIACIÓN CON AGENTE ════════
+function openAgentNeg(agentId){
+  const off=G.st.offers.find(o=>o.agentId===agentId), a=agentById(agentId);
+  G.aneg={agentId,offer:off.price,floor:off.floor,round:0,transit:off.transit,validez:off.validez,
+          conf:off.conf,plazo:Math.min(G.supplierTerm,a.plazoMax),prioridad:false,
+          tactics:{farol:false,volumen:false,prioridad:false},msg:`“Para ${G.st.cargo.ruta}: ${money(off.price)}. Validez ${off.validez} días.”`};
+  G.agentUi="negociar"; render();
 }
-function advice(st,acc,risk,m){
-  if(st.price>st.cargo.clientMaxViable) return "A este precio no le cierra el negocio. Bajá o pasá.";
-  if(acc<0.4 && st.persona.urgency>60) return "Tiene urgencia: probá aéreo o presión de tiempo.";
-  if(acc<0.4) return "Está caro para el cliente. Bajá el precio o mejorá el plazo.";
-  if(m<0.13) return "Margen muy fino: un problema operativo te lo come. Cobrá un poco más si podés.";
-  if(risk>0.4) return "Riesgo alto: pedí contado para no arriesgar el cobro.";
-  return "Precio equilibrado. Podés ajustar el plazo de pago para mejorar tu caja.";
+function agentDescuento(){
+  const an=G.aneg,a=agentById(an.agentId); if(an.round>=3){ an.msg="“Ya te di mi mejor número, "+a.nombre.split(' ')[0]+" no baja más.”"; G.rel[an.agentId]=Math.max(0,G.rel[an.agentId]-2); return render(); }
+  an.round++;
+  const nuevo=Math.max(an.floor,Math.round(an.offer*(1-a.flex)));
+  if(nuevo<an.offer){ an.offer=nuevo; an.msg="“Puedo llegar a "+money(nuevo)+". Es un esfuerzo.”"; G.rel[an.agentId]=Math.max(0,G.rel[an.agentId]-1); }
+  else { an.msg="“Imposible bajar más, es mi piso.”"; G.rel[an.agentId]=Math.max(0,G.rel[an.agentId]-2); }
+  render();
+}
+function agentTactic(t){
+  const an=G.aneg,a=agentById(an.agentId); if(an.tactics[t]) return; an.tactics[t]=true;
+  if(t==="farol"){ // "tengo otro más barato"
+    if(Math.random()<0.45+a.flex){ const nuevo=Math.max(an.floor,Math.round(an.offer*(1-a.flex*1.8))); an.offer=nuevo;
+      an.msg="“Mmm... no quiero perder la carga. Te lo dejo en "+money(nuevo)+".”"; flash("Farol exitoso con "+a.nombre+"."); }
+    else { G.rel[an.agentId]=Math.max(0,G.rel[an.agentId]-8); an.msg="“Andá con ese otro entonces. Mi precio es ese.”"; flash("El farol no le creyó: la relación bajó."); }
+  }
+  if(t==="volumen"){ const nuevo=Math.max(an.floor,Math.round(an.offer*0.94)); an.offer=nuevo; G.rel[an.agentId]=Math.min(100,G.rel[an.agentId]+3);
+    an.msg="“Si me das volumen, te lo dejo en "+money(nuevo)+". Cuento con vos.”"; flash("Prometiste volumen: mejor precio + relación."); }
+  if(t==="prioridad"){ an.prioridad=true; an.offer=Math.round(an.offer*1.08);
+    an.msg="“Espacio garantizado y salida prioritaria. Suma "+money(Math.round(an.offer-an.offer/1.08))+".”"; flash("Pediste prioridad: +costo, pero asegura el embarque."); }
+  render();
+}
+function setAgentPlazo(d){ const a=agentById(G.aneg.agentId); if(d>a.plazoMax){ flash(a.nombre+" no te da más de "+a.plazoMax+"d de crédito."); return; } G.aneg.plazo=d; render(); }
+function lockAgent(){
+  const an=G.aneg,c=G.st.cargo;
+  c.costo=an.offer; c.agentId=an.agentId; c.conf=an.conf; c.transit=an.transit;
+  c.agentTerm=an.plazo; c.prioridad=an.prioridad;
+  c.clientMaxViable=Math.round(c.costo*c.viableMult); c.unwinnable=c.clientMaxViable<Math.round(c.costo*1.10);
+  G.st.price=Math.round(c.costo*1.18);
+  G.rel[an.agentId]=Math.min(100,G.rel[an.agentId]+1);
+  log("📑 Reservaste tarifa con "+agentById(an.agentId).nombre+": "+money(an.offer)+" (pago a "+an.plazo+"d).");
+  G.aneg=null; G.agentUi="lista"; G.view="cliente"; G.ui="cotizar"; render();
 }
 
+// ════════ NAVEGACIÓN (swipe táctil + arrastre con mouse + tabs) ════════
+function setView(v){ if(G.over||G.ui==="intro") return; G.view=v; render(); }
+
+// Gesto unificado: sirve para DEDO (touch) y MOUSE (drag en PC).
+// Mientras arrastrás, la pantalla sigue el movimiento (feedback visual);
+// al soltar, si pasaste el umbral, cambia de sección.
+let dragX=null, dragY=null, dragging=false;
+function gestureStart(x,y){
+  if(G.over||G.ui==="intro"||document.querySelector('.modal')) return;
+  dragX=x; dragY=y; dragging=true;
+}
+function gestureMove(x,y){
+  if(!dragging||dragX==null) return;
+  const dx=x-dragX, dy=y-dragY;
+  if(Math.abs(dx)<Math.abs(dy)) return;            // gesto vertical → es scroll, no swipe
+  const sc=$("screen");
+  // no permitir arrastrar "hacia afuera" (cliente no tiene nada a la derecha, agente nada a la izq.)
+  const allow=(G.view==='cliente'&&dx<0)||(G.view==='agente'&&dx>0);
+  sc.style.transition='none';
+  sc.style.transform=`translateX(${allow?dx*0.4:dx*0.08}px)`;
+  sc.style.opacity = allow ? Math.max(0.55,1-Math.abs(dx)/600) : 1;
+}
+function gestureEnd(x){
+  const sc=$("screen");
+  sc.style.transition='transform .18s ease, opacity .18s ease';
+  sc.style.transform=''; sc.style.opacity='';
+  if(!dragging||dragX==null){ dragging=false; return; }
+  const dx=x-dragX; dragging=false; dragX=null;
+  if(Math.abs(dx)>55){
+    if(dx<0) setView('agente');    // arrastrar a la izquierda → agente
+    else     setView('cliente');   // arrastrar a la derecha → cliente
+  }
+}
+function initSwipe(){
+  // Touch (celular)
+  document.addEventListener('touchstart',e=>gestureStart(e.touches[0].clientX,e.touches[0].clientY),{passive:true});
+  document.addEventListener('touchmove', e=>gestureMove(e.touches[0].clientX,e.touches[0].clientY),{passive:true});
+  document.addEventListener('touchend',  e=>gestureEnd(e.changedTouches[0].clientX),{passive:true});
+  // Mouse (PC): arrastrar con el botón apretado. Ignora clicks en botones/inputs.
+  document.addEventListener('mousedown',e=>{
+    if(e.target.closest('button,input,a,.tab')) return;   // no robar clicks de controles
+    gestureStart(e.clientX,e.clientY);
+  });
+  document.addEventListener('mousemove',e=>{ if(dragging) gestureMove(e.clientX,e.clientY); });
+  document.addEventListener('mouseup',  e=>gestureEnd(e.clientX));
+}
+
+// ════════ RENDER ════════
 function render(){
-  renderHud(); if(G.over) return;
+  renderTabs(); renderHud(); if(G.over) return;
+  if(G.ui==="intro") return renderIntro();
   if(G.ui==="ops") return renderOps();
-  if(G.ops.length>=G.capacity && (G.ui==="consulta")) return renderSinCapacidad();
+  if(G.view==="agente") return renderAgente();
+  if(G.ops.length>=G.capacity && G.ui==="consulta") return renderSinCapacidad();
   const fn={consulta:renderConsulta,cotizar:renderCotizar,respuesta:renderRespuesta,cerrado:renderCerrado,perdido:renderPerdido}[G.ui];
   (fn||renderConsulta)();
 }
+function renderTabs(){
+  if(G.ui==="intro"||G.over){ $("tabs").innerHTML=""; $("swipehint").textContent=""; return; }
+  const needRate = G.st && G.st.cargo.costo==null;
+  $("tabs").innerHTML=`
+    <div class="tab ${G.view==='agente'?'on agente':''}" onclick="setView('agente')">◀ 🚢 AGENTES${needRate?'<span class="badge">!</span>':''}</div>
+    <div class="tab ${G.view==='cliente'?'on cliente':''}" onclick="setView('cliente')">🏢 CLIENTE ▶</div>`;
+  $("swipehint").textContent = G.view==='cliente' ? "Deslizá ← para ver tarifas de agentes" : "Deslizá → para volver al cliente";
+}
 function renderHud(){
+  if(G.ui==="intro"){ $("hud").innerHTML=""; return; }
   const falta=Math.max(0,G.nextMonthly-G.day), alert=(G.cash<G.monthly&&falta<=6);
   $("hud").innerHTML=`
     <div class="cell"><div class="lbl">Caja</div><div class="val" style="color:${G.cash<G.monthly?'var(--bad)':'var(--good)'}">${money(G.cash)}</div></div>
@@ -494,6 +487,30 @@ function renderHud(){
     <div class="cell btn" onclick="openRules()"><div class="lbl">❓</div><div class="val" style="font-size:12px">Reglas</div></div>`;
 }
 
+function renderIntro(){
+  $("screen").innerHTML=`<div class="card">
+    <div class="center" style="font-size:40px;margin-bottom:4px">📦</div>
+    <h2 style="text-align:center;color:var(--accent);margin:0 0 2px">FREIGHT FORWARDER</h2>
+    <div class="center" style="color:var(--violet);font-weight:700;letter-spacing:2px;font-size:12px;margin-bottom:14px">EL ESCRITORIO</div>
+    <div class="story">Sos un <b>agente de cargas</b>. Estás en el medio: de un lado el <b>cliente</b> que quiere mover su mercadería, del otro los <b>agentes</b> (navieras, aéreas, transportistas) que te dan la tarifa. Tu negocio es la diferencia.</div>
+    <div class="sect-lbl">🕹️ El loop</div>
+    <div class="rowlist">
+      <div class="row"><span class="ic">1️⃣</span><div><div class="v">Llega una consulta</div><div class="k">Un cliente te dice qué necesita mover.</div></div></div>
+      <div class="row"><span class="ic">🚢</span><div><div class="v">Deslizá ← a AGENTES</div><div class="k">Conseguí y negociá la tarifa (tu costo).</div></div></div>
+      <div class="row"><span class="ic">🏢</span><div><div class="v">Deslizá → al CLIENTE</div><div class="k">Armá tu cotización y negociá la venta.</div></div></div>
+      <div class="row"><span class="ic">💰</span><div><div class="v">Cerrá y cobrá</div><div class="k">Comprá barato, vendé caro, cuidá la caja.</div></div></div>
+    </div>
+    <div class="note warn"><span class="e">🧠</span><span>Con el <b>agente</b> pensás "cómo gasto menos". Con el <b>cliente</b>, "cómo gano más". El negocio está en el medio.</span></div>
+    <div class="actions" style="margin-top:16px">
+      <button class="b-go" onclick="startGame()">▶ Empezar a jugar</button>
+      <button class="b-ghost" onclick="openRules()">❓ Reglas</button>
+    </div>
+    <div class="tip center" style="margin-top:10px">Al rato te pedimos tu opinión. ¡Gracias por probarlo! 🙌</div>
+  </div>`;
+}
+function startGame(){ G.view="cliente"; G.ui="consulta"; render(); }
+
+// ── LADO CLIENTE ──
 function renderConsulta(){
   const st=G.st,c=st.cargo;
   $("screen").innerHTML=`<div class="card">
@@ -503,32 +520,38 @@ function renderConsulta(){
     <div class="rowlist">
       <div class="row"><span class="ic">📦</span><div><div class="k">Carga</div><div class="v">${c.desc} · ${c.merc}</div></div></div>
       <div class="row"><span class="ic">🌍</span><div><div class="k">Ruta</div><div class="v">${c.ruta}</div></div></div>
+      <div class="row"><span class="ic">${c.modo==='aereo'?'✈️':c.modo==='terrestre'?'🚚':'🚢'}</span><div><div class="k">Modo</div><div class="v">${c.modo}</div></div></div>
       <div class="row"><span class="ic">⏱️</span><div><div class="k">Urgencia</div><div class="v">${c.urgente?'⚡ Urgente':'Normal'}</div></div></div>
     </div>
     <div class="story">${c.historia}<div class="motiv">${c.motivo}</div></div>
     ${c.flavor?`<div class="note"><span class="e">${c.flavor.slice(0,2)}</span><span>${c.flavor.slice(2)}</span></div>`:""}
+    <div class="note"><span class="e">🚢</span><span>Todavía no sabés cuánto te sale. <b>Deslizá ← a Agentes</b> para conseguir la tarifa.</span></div>
     <div class="actions">
-      <button class="b-go" onclick="goCotizar()">📝 Ver y cotizar</button>
+      <button class="b-violet" onclick="setView('agente')">🚢 Buscar tarifa con agentes ←</button>
       <button class="b-ghost" onclick="rejectClient()">Rechazar</button>
     </div></div>`;
 }
-function goCotizar(){ G.ui="cotizar"; render(); }
 
 function renderCotizar(){
-  const st=G.st,p=st.persona,c=st.cargo,costo=c.costo;
-  const floor=Math.round(costo*1.10),cap=Math.round(costo*1.55);
+  const st=G.st,p=st.persona,c=st.cargo;
+  if(c.costo==null){
+    $("screen").innerHTML=`<div class="card center">
+      <div class="big" style="color:var(--violet)">Falta la tarifa</div>
+      <div>Para cotizarle a ${c.co} primero necesitás conseguir el costo con un agente.</div>
+      <div class="actions"><button class="b-violet" onclick="setView('agente')">🚢 Ir a Agentes ←</button></div></div>`; return;
+  }
+  const costo=c.costo, floor=Math.round(costo*1.10),cap=Math.round(costo*1.55);
   if(st.price<floor) st.price=floor; if(st.price>cap) st.price=cap;
   const m=(st.price-costo)/costo, acc=acceptance(), risk=estimateRisk(st), w=words(acc,risk.total,m);
+  const ag=agentById(c.agentId);
   $("screen").innerHTML=`<div class="card">
-    <div class="step">💲 Armando cotización — ${c.co}</div>
+    <div class="step">💲 Cotización — ${c.co}</div>
     <div class="row" style="border:none;padding-top:0"><span class="ic">🌍</span><div><div class="k">${c.merc}</div><div class="v">${c.ruta}</div></div>
-      <div class="rt"><div class="k">Tu costo</div><div class="v" style="color:var(--info)">${money(costo)}</div></div></div>
-
+      <div class="rt"><div class="k">Tu costo (${ag.nombre})</div><div class="v" style="color:var(--info)">${money(costo)}</div></div></div>
     <div class="price-box">
       <div class="lbl">Precio de venta (tu cotización)</div>
       <div class="big-num" style="color:var(--accent)">${money(st.price)}</div>
-      <div class="stepper">
-        <button onclick="bump(-50)">−</button>
+      <div class="stepper"><button onclick="bump(-50)">−</button>
         <input type="range" min="${floor}" max="${cap}" value="${st.price}" step="25" oninput="G.st.price=+this.value;render()">
         <button onclick="bump(50)">+</button></div>
       <div class="pr-ends"><span>Piso 10% · ${money(floor)}</span><span>Máx · ${money(cap)}</span></div>
@@ -537,79 +560,61 @@ function renderCotizar(){
       <div class="b"><div class="lbl">Ganancia</div><div class="n" style="color:var(--good)">${money(st.price-costo)}</div></div>
       <div class="b"><div class="lbl">Margen</div><div class="n" style="color:${m<=0.12?'var(--warn)':'var(--info)'}">${Math.round(m*100)}%</div></div>
     </div>
-
     <div class="analysis">
       <div class="an"><span class="e">${w.comp[0]}</span><div><b>${w.comp[1]}</b></div></div>
-      <div class="an"><span class="e">${w.rk[0]}</span><div><b>${w.rk[1]}</b> en la operación</div></div>
+      <div class="an"><span class="e">${w.rk[0]}</span><div><b>${w.rk[1]}</b> · agente ${c.conf}% confiable${c.prioridad?' · ⚡ prioridad':''}</div></div>
       <div class="an"><span class="e">${w.rent[0]}</span><div><b>${w.rent[1]}</b></div></div>
     </div>
     ${st.revealed.length?`<div class="note"><span class="e">💡</span><span>${st.revealed[st.revealed.length-1]}</span></div>`:""}
     <div class="note ${m<0.13||acc<0.4?'warn':''}"><span class="e">💬</span><span>${advice(st,acc,risk.total,m)}</span></div>
-
     <div class="sect-lbl">📅 Plazo de pago — cobrás en</div>
     <div class="seg">${[0,15,30,45,60].map(d=>`<button class="${st.term===d?'on':''}" onclick="G.st.term=${d};render()">${d===0?'Contado':d+'d'}<span class="s">${d===0?'hoy':'a '+d+'d'}</span></button>`).join("")}</div>
-    ${st.term>G.supplierTerm?`<div class="note warn"><span class="e">⏰</span><span>Cobrás en ${st.term}d pero al proveedor le pagás en ${G.supplierTerm}d: ponés plata de tu caja en el medio.</span></div>`:""}
-
-    <div class="sect-lbl">🚢 Transporte</div>
-    <div class="seg">${[["maritimo","🚢 Marítimo","económico"],["aereo","✈️ Aéreo","rápido, caro"],["terrestre","🚚 Terrestre","regional"]].map(([k,l,s])=>`<button class="${st.transport===k?'on':''}" onclick="setTransport('${k}')">${l}<span class="s">${s}</span></button>`).join("")}</div>
-
+    ${st.term>c.agentTerm?`<div class="note warn"><span class="e">⏰</span><span>Cobrás en ${st.term}d pero al agente le pagás en ${c.agentTerm}d: ponés plata de tu caja en el medio.</span></div>`:""}
     <div class="sect-lbl">🛠️ Tácticas</div>
     <div class="tactics">
       <button onclick="useTactic('tiempo')" ${st.tactics.tiempo?'disabled':''}>⏱️ Presión<br>de tiempo</button>
       <button onclick="useTactic('valor')" ${st.tactics.valor?'disabled':''}>⭐ Argumento<br>de valor</button>
       <button onclick="useTactic('anticipo')" ${st.tactics.anticipo?'disabled':''}>💵 Pago<br>anticipado</button>
     </div>
-
     <div class="summary">
       <div><span class="lbl">Cobrás</span><s class="sn" style="color:var(--good)">${money(st.price)}</s><span class="op">en ${st.term}d</span></div>
       <div class="op">−</div>
-      <div><span class="lbl">Pagás</span><s class="sn" style="color:var(--bad)">${money(costo)}</s><span class="op">en ${Math.min(G.supplierTerm,st.term)}d</span></div>
+      <div><span class="lbl">Pagás</span><s class="sn" style="color:var(--bad)">${money(costo)}</s><span class="op">en ${c.agentTerm}d</span></div>
       <div class="op">=</div>
       <div><span class="lbl">Ganás</span><s class="sn" style="color:var(--accent)">${money(st.price-costo)}</s></div>
     </div>
     <div class="actions">
       <button class="b-go" onclick="sendQuote()">📨 Enviar cotización</button>
-      <button class="b-ghost" onclick="rejectClient()">Pasar</button>
+      <button class="b-ghost" onclick="setView('agente')">🚢 Cambiar agente</button>
     </div></div>`;
 }
 function bump(d){const st=G.st,c=st.cargo,floor=Math.round(c.costo*1.10),cap=Math.round(c.costo*1.55);
   st.price=Math.max(floor,Math.min(cap,st.price+d));render();}
-function setTransport(mode){const st=G.st,b=st.cargo.costoBase,prev=st.cargo.costo;
-  st.cargo.costo=mode==="aereo"?Math.round(b*2.4):b;
-  st.cargo.clientMaxViable=Math.round(st.cargo.clientMaxViable*(st.cargo.costo/prev));
-  st.transport=mode;render();}
 
 function renderRespuesta(){
   const st=G.st,p=st.persona,costo=st.cargo.costo;
   const acc=acceptance();
   const mood=st.anger>=4?"😠":acc>0.6?"😀":acc>0.4?"😐":"😟";
   const hayContra=(st.counter!=null||st.counterTerm!=null);
-  const futPrice=st.counter!=null?st.counter:st.price;
-  const futTerm=st.counterTerm!=null?st.counterTerm:st.term;
+  const futPrice=st.counter!=null?st.counter:st.price, futTerm=st.counterTerm!=null?st.counterTerm:st.term;
   $("screen").innerHTML=`<div class="card">
     <div class="step violet">🤝 Respuesta del cliente</div>
-    <div class="cli"><div class="ava">${mood}</div><div><div class="nm">${st.cargo.co}</div>
-      <div class="tg">Ronda ${st.round}/${p.maxRounds}</div></div></div>
+    <div class="cli"><div class="ava">${mood}</div><div><div class="nm">${st.cargo.co}</div><div class="tg">Ronda ${st.round}/${p.maxRounds}</div></div></div>
     <div class="story violet">${st.clientMsg}</div>
     ${hayContra?`
       <div class="duo">
-        <div class="b"><div class="lbl">Tu oferta</div><div class="n" style="color:var(--info)">${money(st.price)}</div>
-          <div class="op" style="font-size:11px;color:var(--muted)">ganás ${money(st.price-costo)}</div></div>
-        <div class="b"><div class="lbl">Si aceptás</div><div class="n" style="color:var(--violet)">${st.counter!=null?money(futPrice):money(st.price)}</div>
-          <div class="op" style="font-size:11px;color:var(--warn)">${st.counterTerm!=null?'pago a '+futTerm+'d':'ganás '+money(futPrice-costo)}</div></div>
+        <div class="b"><div class="lbl">Tu oferta</div><div class="n" style="color:var(--info)">${money(st.price)}</div><div class="op" style="font-size:11px;color:var(--muted)">ganás ${money(st.price-costo)}</div></div>
+        <div class="b"><div class="lbl">Si aceptás</div><div class="n" style="color:var(--violet)">${st.counter!=null?money(futPrice):money(st.price)}</div><div class="op" style="font-size:11px;color:var(--warn)">${st.counterTerm!=null?'pago a '+futTerm+'d':'ganás '+money(futPrice-costo)}</div></div>
       </div>
       <div class="actions">
         <button class="b-ok" onclick="acceptCounter()">✓ Aceptar</button>
         <button class="b-counter" onclick="backToCotizar()">🤝 Contraofertar</button>
-        <button class="b-no" onclick="rejectClient()">✕ Rechazar</button>
-      </div>`
-    :`<div class="note"><span class="e">ℹ️</span><span>El cliente no llega a tu precio. Podés bajar tu cotización o pasar.</span></div>
+        <button class="b-no" onclick="rejectClient()">✕ Rechazar</button></div>`
+    :`<div class="note"><span class="e">ℹ️</span><span>El cliente no llega a tu precio. Bajá la cotización o pasá.</span></div>
       <div class="actions">
-        <button class="b-counter" onclick="backToCotizar()">📝 Ajustar cotización</button>
-        <button class="b-no" onclick="rejectClient()">Pasar</button>
-      </div>`}
-    <div class="tip">💡 Cada decisión afecta tu reputación, tu caja y tus chances de cierre.</div>
-  </div>`;
+        <button class="b-counter" onclick="backToCotizar()">📝 Ajustar</button>
+        <button class="b-no" onclick="rejectClient()">Pasar</button></div>`}
+    <div class="tip">💡 Cada decisión afecta tu reputación, tu caja y tus chances.</div></div>`;
 }
 function backToCotizar(){ G.ui="cotizar"; render(); }
 
@@ -623,27 +628,88 @@ function renderCerrado(){
       <div class="b"><div class="lbl">Ganancia</div><div class="n" style="color:var(--good)">${money(st.price-st.cargo.costo)}</div></div>
       <div class="b"><div class="lbl">Margen</div><div class="n">${Math.round(m*100)}%</div></div>
     </div>
-    <div class="note"><span class="e">📦</span><span>La operación quedó en curso. Cobrás en ${st.term}d (si todo sale bien). Mirala en "Ops".</span></div>
-    <div class="actions"><button class="b-go" onclick="nextOrEnd()">Siguiente cliente →</button></div>
-  </div>`;
+    <div class="note"><span class="e">📦</span><span>Operación en curso. Cobrás en ${st.term}d (si todo sale bien). Mirala en "Ops".</span></div>
+    <div class="actions"><button class="b-go" onclick="nextOrEnd()">Siguiente cliente →</button></div></div>`;
 }
 function renderPerdido(){
-  const st=G.st;
   $("screen").innerHTML=`<div class="card center">
     <div class="big" style="color:var(--bad)">Trato perdido</div>
-    <div class="story" style="border-color:var(--bad)">${st.clientMsg}</div>
-    <div class="tip">No pasa nada: pasar a tiempo también es parte del oficio.</div>
-    <div class="actions"><button class="b-go" onclick="nextOrEnd()">Siguiente cliente →</button></div>
+    <div class="story" style="border-color:var(--bad)">${G.st.clientMsg}</div>
+    <div class="tip">Pasar a tiempo también es parte del oficio.</div>
+    <div class="actions"><button class="b-go" onclick="nextOrEnd()">Siguiente cliente →</button></div></div>`;
+}
+
+// ── LADO AGENTE ──
+function renderAgente(){
+  if(!G.st || G.ui==="ops"){ return; }
+  if(G.agentUi==="negociar") return renderAgenteNeg();
+  return renderAgenteLista();
+}
+function relWord(r){return r>=80?"Excelente":r>=65?"Buena":r>=45?"Normal":r>=25?"Floja":"Mala";}
+function renderAgenteLista(){
+  const c=G.st.cargo;
+  const cards=G.st.offers.map(o=>{
+    const a=agentById(o.agentId), rel=G.rel[o.agentId];
+    const locked=c.agentId===o.agentId;
+    return `<div class="agent-card ${locked?'sel':''}">
+      <div class="agent-head"><span class="ava">${a.emoji}</span>
+        <div><div class="nm">${a.nombre}</div><div class="ops-sub">${a.tipo} · ${a.desc}</div></div>
+        <div class="rel">Rel: ${relWord(rel)}<div class="relbar"><i style="width:${rel}%"></i></div></div></div>
+      <div class="agent-stats"><span>🕒 Transit <b>${o.transit}d</b></span><span>📅 Validez <b>${o.validez}d</b></span><span>🛡️ Conf <b>${o.conf}%</b></span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span class="agent-price">${money(o.price)}</span>
+        <button class="b-violet" style="padding:9px 14px;border:none;border-radius:10px;font-weight:700;cursor:pointer" onclick="openAgentNeg('${o.agentId}')">${locked?'Renegociar':'Negociar'} →</button>
+      </div></div>`;
+  }).join("");
+  $("screen").innerHTML=`<div class="card">
+    <div class="step violet">🚢 Agentes — tarifas para tu carga</div>
+    <div class="row" style="border:none;padding-top:0"><span class="ic">${c.modo==='aereo'?'✈️':c.modo==='terrestre'?'🚚':'🚢'}</span>
+      <div><div class="k">${G.st.cargo.co} pide</div><div class="v">${c.desc} · ${c.ruta}</div></div></div>
+    <div class="note"><span class="e">🎯</span><span>Conseguí el costo más bajo que puedas: <b>cada peso que ahorrás acá es margen tuyo</b>. Pero ojo: el más barato suele ser el menos confiable.</span></div>
+    ${cards}
+    ${c.costo!=null?`<div class="note"><span class="e">✅</span><span>Tarifa reservada con ${agentById(c.agentId).nombre} (${money(c.costo)}). Deslizá → para cotizarle al cliente.</span></div>
+      <div class="actions"><button class="b-go" onclick="setView('cliente')">🏢 Ir a cotizar al cliente →</button></div>`:""}
+  </div>`;
+}
+function renderAgenteNeg(){
+  const an=G.aneg,a=agentById(an.agentId),c=G.st.cargo;
+  const ahorro=c.marketBase-an.offer;
+  $("screen").innerHTML=`<div class="card">
+    <div class="step violet">🤝 Negociando con ${a.nombre}</div>
+    <div class="cli"><div class="ava">${a.emoji}</div><div><div class="nm">${a.nombre}</div>
+      <div class="tg">${a.tipo} · Relación ${relWord(G.rel[an.agentId])}</div></div></div>
+    <div class="story violet">${an.msg}</div>
+    <div class="duo">
+      <div class="b"><div class="lbl">Tarifa</div><div class="n" style="color:var(--violet)">${money(an.offer)}</div></div>
+      <div class="b"><div class="lbl">Transit</div><div class="n">${an.transit}d</div></div>
+      <div class="b"><div class="lbl">Conf.</div><div class="n">${an.conf}%</div></div>
+    </div>
+    <div class="note"><span class="e">${ahorro>=0?'🟢':'🔴'}</span><span>vs. mercado (${money(c.marketBase)}): ${ahorro>=0?'ahorrás '+money(ahorro):'pagás '+money(-ahorro)+' de más'}</span></div>
+    <div class="sect-lbl">🛠️ Tácticas con el agente</div>
+    <div class="tactics">
+      <button onclick="agentTactic('farol')" ${an.tactics.farol?'disabled':''}>🃏 Farol<br>"tengo más barato"</button>
+      <button onclick="agentTactic('volumen')" ${an.tactics.volumen?'disabled':''}>📦 Prometer<br>volumen</button>
+      <button onclick="agentTactic('prioridad')" ${an.tactics.prioridad?'disabled':''}>⚡ Pedir<br>prioridad</button>
+    </div>
+    <div class="sect-lbl">📅 Plazo para pagarle (crédito, máx ${a.plazoMax}d)</div>
+    <div class="seg">${[0,15,30,45].map(d=>`<button class="${an.plazo===d?'on':''}" ${d>a.plazoMax?'style="opacity:.35"':''} onclick="setAgentPlazo(${d})">${d===0?'Contado':d+'d'}</button>`).join("")}</div>
+    <div class="actions">
+      <button class="b-counter" onclick="agentDescuento()">📉 Pedir descuento (${an.round}/3)</button>
+      <button class="b-ok" onclick="lockAgent()">✓ Tomar tarifa</button>
+    </div>
+    <div class="actions"><button class="b-ghost" onclick="G.agentUi='lista';render()">← Ver otros agentes</button></div>
+    <div class="tip">💡 Si apretás mucho a un agente, la relación baja y la próxima vez te cotiza más caro.</div>
   </div>`;
 }
 
+// ── OPS / utilidades ──
 function openOps(){ if(G.over) return; G._back=G.ui; G.ui="ops"; render(); }
 function closeOps(){ G.ui=(G._back&&G._back!=="ops")?G._back:"consulta"; render(); }
 function renderOps(){
   const cobrar=G.ops.reduce((s,o)=>s+o.price,0), pagar=G.ops.filter(o=>!o.costPaid).reduce((s,o)=>s+o.costo,0);
   const rows=G.ops.slice().sort((a,b)=>a.payDay-b.payDay).map(o=>{
     const d=Math.max(0,o.payDay-G.day),r=o.risk.total,col=r>0.4?"var(--bad)":r>0.2?"var(--warn)":"var(--good)";
-    const pv=o.costPaid?"proveedor pagado":"−"+money(o.costo)+" prov. "+(Math.max(0,o.costDay-G.day)===0?"hoy":"en "+Math.max(0,o.costDay-G.day)+"d");
+    const pv=o.costPaid?"agente pagado":"−"+money(o.costo)+" agente "+(Math.max(0,o.costDay-G.day)===0?"hoy":"en "+Math.max(0,o.costDay-G.day)+"d");
     return `<div class="ops-row"><span class="dot" style="background:${col}"></span>
       <span class="ops-co">${o.co}<div class="ops-sub">${pv}</div></span>
       <span class="ops-amt">${money(o.price)}<div class="ops-when">${d===0?'cobra ya':'cobra en '+d+'d'}</div></span></div>`;
@@ -653,37 +719,115 @@ function renderOps(){
     <div class="duo">
       <div class="b"><div class="lbl">Por cobrar</div><div class="n" style="color:var(--good)">${money(cobrar)}</div></div>
       <div class="b"><div class="lbl">Por pagar</div><div class="n" style="color:var(--bad)">${money(pagar)}</div></div>
-      <div class="b"><div class="lbl">Caja libre</div><div class="n">${money(G.cash)}</div></div>
-    </div>
+      <div class="b"><div class="lbl">Caja libre</div><div class="n">${money(G.cash)}</div></div></div>
     ${rows}
     <div class="actions">
       ${G.ops.length?`<button class="b-no" onclick="advanceTime();G.ui='ops';render()">⏩ Avanzar tiempo</button>`:''}
-      <button class="b-go" onclick="closeOps()">Volver</button></div>
-  </div>`;
+      <button class="b-go" onclick="closeOps()">Volver</button></div></div>`;
 }
 function renderSinCapacidad(){
   $("screen").innerHTML=`<div class="card center">
     <div class="big" style="color:var(--warn)">Sin capacidad</div>
-    <div>Tenés ${G.ops.length}/${G.capacity} operaciones en curso. Esperá que se resuelvan para tomar nuevas.</div>
+    <div>Tenés ${G.ops.length}/${G.capacity} operaciones en curso. Esperá que se resuelvan.</div>
     <div class="tip">Los gastos del mes corren igual.</div>
     <div class="actions"><button class="b-go" onclick="advanceTime();render()">⏩ Avanzar el tiempo</button>
       <button class="b-no" onclick="openOps()">Ver operaciones</button></div></div>`;
 }
-
-function gameOver(){ 
-  G.over=true; 
-  if(feedbackTimeout) clearTimeout(feedbackTimeout);
+function gameOver(){ G.over=true; if(feedbackTimeout) clearTimeout(feedbackTimeout);
   $("screen").innerHTML=`<div class="card center"><div class="big" style="color:var(--bad)">🏴 BANCARROTA</div>
     <div>Te quedaste sin caja en el día ${G.day}.</div>
     <div class="tip">Cerraste ${G.deals} · ${G.problems} salieron mal · pasaste ${G.lost} · reputación ${G.rep}.</div>
-    <div class="tip">No hay fórmula única: a veces conviene pasar, a veces arriesgar para llegar a fin de mes.</div>
     <div class="actions"><button class="b-go" onclick="newGame()">Jugar de nuevo</button></div></div>`;
-  renderHud();
+  renderHud(); $("tabs").innerHTML="";
 }
-
+function words(acc,risk,m){
+  const comp = acc>0.6?["😀","Buena posibilidad de cierre"]:acc>0.4?["😐","Posible, conviene ajustar"]:["😟","Difícil de cerrar"];
+  const rk   = risk<0.2?["🛡️","Riesgo bajo"]:risk<0.4?["🛡️","Riesgo medio"]:["⚠️","Riesgo alto"];
+  const rent = m<0.12?["📉","Margen al límite"]:m<0.25?["📈","Margen aceptable"]:["💎","Margen alto"];
+  return {comp,rk,rent};
+}
+function advice(st,acc,risk,m){
+  if(st.price>st.cargo.clientMaxViable) return "A este precio no le cierra el negocio. Bajá o pasá.";
+  if(acc<0.4 && st.persona.urgency>60) return "Tiene urgencia: la prioridad del agente o el aéreo ayudan.";
+  if(acc<0.4) return "Está caro para el cliente. Bajá el precio o mejorá el plazo.";
+  if(m<0.13) return "Margen muy fino: un problema operativo te lo come. Negociá mejor con el agente.";
+  if(risk>0.4) return "Riesgo alto: el agente es poco confiable. Pedí contado o cambiá de agente.";
+  return "Precio equilibrado. Ajustá el plazo para mejorar tu caja.";
+}
 function revealHint(){const h=G.st.persona.hints[G.st.revealed.length];if(h)G.st.revealed.push(h);}
 function flash(t){log("▶ "+t);}
 function log(t){const d=document.createElement("div");d.textContent=t;$("log").prepend(d);}
+
+// ========== MODAL DE REGLAS ==========
+function openRules(){
+  const d=document.createElement('div'); d.className='modal'; d.id='rulesModal';
+  d.innerHTML=`<div class="modal-content">
+    <h2>📋 Cómo jugar</h2>
+    <p><strong>Sos un Freight Forwarder.</strong> Estás en el medio entre el <b>cliente</b> (quiere mover carga) y el <b>agente</b> (te da la tarifa). Ganás la diferencia.</p>
+    <h3>↔️ Navegación</h3>
+    <p>Deslizá con el dedo (o tocá las pestañas de arriba):<br>
+    👉 Derecha = <b>CLIENTE</b> (cotizás y vendés)<br>
+    👈 Izquierda = <b>AGENTE</b> (conseguís y negociás el costo)</p>
+    <h3>🔄 El loop</h3>
+    <p>1. Llega una consulta del cliente (todavía sin costo).<br>
+    2. Vas a Agentes y negociás la tarifa → ese es tu costo.<br>
+    3. Volvés al cliente, armás tu cotización y negociás la venta.<br>
+    4. Cerrás → la operación entra en curso → cobrás más adelante.<br>
+    5. Los gastos del mes corren siempre. ¡Cuidá la caja!</p>
+    <h3>🚢 Agentes</h3>
+    <p>Cada agente tiene <b>precio, transit, confiabilidad y relación</b> con vos.<br>
+    • El más barato suele ser el menos confiable (más problemas operativos).<br>
+    • Tácticas: 🃏 farol, 📦 volumen, ⚡ prioridad.<br>
+    • Si lo apretás mucho, la relación baja y te cotiza más caro después.</p>
+    <h3>🏢 Clientes (ocultos)</h3>
+    <p>🐀 <b>Rata:</b> solo precio. ⏰ <b>Apurado:</b> urgencia. 🤝 <b>Confiable:</b> valora el servicio.</p>
+    <h3>📊 Caja</h3>
+    <p>Le pagás al agente según el crédito que negociaste; cobrás al cliente según el plazo. Si cobrás después de pagar, ponés plata tuya en el medio.</p>
+    <button id="closeRules" class="modal-close">Cerrar</button></div>`;
+  document.body.appendChild(d);
+  d.querySelector('#closeRules').addEventListener('click',()=>d.remove());
+  d.addEventListener('click',e=>{if(e.target===d)d.remove();});
+}
+
+// ========== MODAL DE FEEDBACK ==========
+function showFeedbackModal(manual=false){
+  if(feedbackShown&&!manual) return; feedbackShown=true; if(feedbackTimeout) clearTimeout(feedbackTimeout);
+  const mins=Math.floor((Date.now()-G.startTime)/60000);
+  const d=document.createElement('div'); d.className='modal'; d.id='feedbackModal';
+  d.innerHTML=`<div class="modal-content">
+    <h2>📝 Tu opinión importa</h2>
+    <p><strong>¡Gracias por jugar!</strong> Llevás ${mins} min. Ayudanos a mejorar el juego.</p>
+    <label>Tu nombre o alias:</label>
+    <input type="text" id="fbName" class="feedback-input" placeholder="Ej: Juan, Forwarder777">
+    <label>¿Qué puntuación le das?</label>
+    <div class="rating" id="fbStars"><span class="star" data-v="1">☆</span><span class="star" data-v="2">☆</span><span class="star" data-v="3">☆</span><span class="star" data-v="4">☆</span><span class="star" data-v="5">☆</span></div>
+    <input type="hidden" id="fbRating" value="0">
+    <label>¿Volverías a jugar?</label>
+    <div class="seg" style="margin:5px 0"><button type="button" id="fbY">✅ Sí</button><button type="button" id="fbN">❌ No</button><button type="button" id="fbM">🤔 Tal vez</button></div>
+    <input type="hidden" id="fbAgain" value="">
+    <label>¿Qué te pareció el swipe Cliente/Agente? ¿Qué cambiarías?</label>
+    <textarea id="fbCom" rows="4" class="feedback-input" placeholder="Me gustó... me confundí en... agregaría..."></textarea>
+    <button id="fbSubmit" class="modal-close">📤 Enviar feedback</button>
+    <button id="fbClose" class="modal-close" style="background:var(--panel2);color:var(--txt);margin-top:8px">Cerrar sin enviar</button></div>`;
+  document.body.appendChild(d);
+  const stars=d.querySelectorAll('.star'), ri=d.querySelector('#fbRating');
+  stars.forEach(s=>s.addEventListener('click',()=>{const v=+s.dataset.v;ri.value=v;stars.forEach((x,i)=>x.innerHTML=i<v?'★':'☆');}));
+  const yes=d.querySelector('#fbY'),no=d.querySelector('#fbN'),may=d.querySelector('#fbM'),ai=d.querySelector('#fbAgain');
+  const reset=()=>[yes,no,may].forEach(b=>b.style.background='var(--panel2)');
+  yes.addEventListener('click',()=>{reset();yes.style.background='var(--good)';ai.value='Sí';});
+  no.addEventListener('click',()=>{reset();no.style.background='var(--bad)';ai.value='No';});
+  may.addEventListener('click',()=>{reset();may.style.background='var(--warn)';ai.value='Tal vez';});
+  d.querySelector('#fbSubmit').addEventListener('click',()=>{
+    const stats=`Día ${G.day} | Cerrados ${G.deals} | Rep ${G.rep} | Caja ${money(G.cash)} | Min ${mins}`;
+    guardarFeedback({name:d.querySelector('#fbName').value||'Anónimo',rating:ri.value||'0',again:ai.value||'Sin responder',
+      comments:d.querySelector('#fbCom').value,stats,date:new Date().toLocaleString()});
+    d.remove(); render();
+  });
+  d.querySelector('#fbClose').addEventListener('click',()=>d.remove());
+  d.addEventListener('click',e=>{if(e.target===d)d.remove();});
+}
+
+initSwipe();
 newGame();
 </script>
 </body>
