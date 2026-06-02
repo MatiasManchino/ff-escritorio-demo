@@ -788,6 +788,24 @@ function useTactic(t){
   renderAll();
 }
 
+// El jugador decide ABANDONAR la carga (incluso ya teniendo tarifa).
+// Es una salida digna: penaliza poco la fama. Si había agente reservado, se enfría un poco.
+function declineClient(){
+  if(G.st.finished) return;
+  const frases=["Lo lamento, esta vez no llego con el número.","No te puedo ayudar en esta operación, disculpá.","Prefiero no tomar esta carga, no me cierra.","Te quedo debiendo esta; ahora no puedo."];
+  G.lost++;
+  if(G.st.cargo.agentId){
+    G.rel[G.st.cargo.agentId]=Math.max(0,G.rel[G.st.cargo.agentId]-3);
+    log("Soltaste la tarifa de "+agentById(G.st.cargo.agentId).nombre+": quedó algo molesto.");
+  }
+  G.st.finished=true;
+  addRep(-1);                       // abandonar a tiempo cuesta menos que fallar una entrega
+  G.st.clientMsg=pick(frases);
+  log("🙇 Dejaste pasar a "+G.st.cargo.co+". (reputación -1)");
+  goPanel(2);                       // mostrar la pantalla de cliente (queda en "perdido")
+  renderAll();
+}
+
 function rejectClient(){
   if(!G.st.finished){
     G.lost++;
@@ -803,6 +821,7 @@ function rejectClient(){
 function closeDeal(){
   const st=G.st;
   st.finished=true;
+  st.dealClosed=true;
   const m=(st.price-st.cargo.costo)/st.cargo.costo;
   G.deals++;
   const risk=estimateRisk(st);
@@ -1376,10 +1395,8 @@ function renderHub(){
 function renderClientes(){
   if(!G.st){$("clientes-content").innerHTML=emptyState("Esperando consulta...");return;}
   if(G.st.finished){
-    if(G.st.clientMsg===LOSE.competidor||G.st.clientMsg===LOSE.negocio||G.st.clientMsg===LOSE.paciencia||G.st.clientMsg===LOSE.enojo)
-      $("clientes-content").innerHTML=renderClientePerdido();
-    else
-      $("clientes-content").innerHTML=renderClienteCerrado();
+    // st.dealClosed lo marca closeDeal(); si no, el trato se perdió o se abandonó.
+    $("clientes-content").innerHTML = G.st.dealClosed ? renderClienteCerrado() : renderClientePerdido();
     return;
   }
   if(G.st.cargo.costo==null){
@@ -1527,6 +1544,9 @@ function renderClienteCotizar(){
     <div class="btn-row">
       <button class="btn btn-primary" onclick="sendQuote()">📨 Enviar cotizacion</button>
       <button class="btn btn-ghost" onclick="goPanel(0)">🚢 Cambiar agente</button>
+    </div>
+    <div class="btn-row" style="margin-top:8px">
+      <button class="btn btn-danger" onclick="declineClient()">🙇 No puedo ayudarte esta vez</button>
     </div>
   </div>`;
 }
