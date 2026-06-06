@@ -849,6 +849,9 @@ function newClient(){
     cargo:{...base, marketBase, market, viableMult,
       costo:null, agentId:null, conf:null, transit:null,
       agentTerm:G.supplierTerm, prioridad:false,
+      // #3: el precio inicial NO arranca siempre en el mismo margen. Varía por operación
+      // (a veces queda alto y no cierra, a veces bajo y dejás plata). Obliga a mirar las palancas.
+      startMarkup:rnd(1.12,1.45),
       clientMaxViable:null, unwinnable:false},
     flavor, price:null, term:persona.prefTerm===0?0:30,
     transport:base.modo, round:0, anger:0,
@@ -919,13 +922,21 @@ function nextTerm(t){const L=[0,15,30,45,60];const i=L.indexOf(t);return i<0?15:
 function sendQuote(){
   const st=G.st;
   if(st.finished)return;
+  // #1 ANTI-SPAM: si reenviás EXACTAMENTE la misma oferta (precio + plazo + tácticas),
+  // no gasta una ronda y te avisa que tenés que cambiar algo. Evita perder por insistir igual.
+  const sig=st.price+"|"+st.term+"|"+JSON.stringify(st.tactics);
+  if(st._lastSig===sig){
+    flash("Es la misma oferta que ya mandaste. Cambiá el precio, el plazo o usá una táctica para mover la aguja.");
+    return;
+  }
+  st._lastSig=sig;
   st.round++;
   track('send_quote',{empresa:st.cargo.co, precio:st.price, costo:st.cargo.costo, plazo:st.term, ronda:st.round, tacticas:st.tactics, interes:Math.round(acceptance()*100)});
   if(st.price>st.cargo.clientMaxViable){
     st.counter=null;st.counterTerm=null;st.clientMsg=LOSE.negocio;
     revealHint();
     if(st.round>=st.persona.maxRounds)return loseDeal(LOSE.paciencia);
-    renderAll();return;
+    renderAll();showClientReaction();return;
   }
   const acc=acceptance();
   if(Math.random()<acc)return closeDeal();
@@ -954,7 +965,41 @@ function sendQuote(){
   st.clientMsg="“"+pick(pool)+pedido+"”";
   revealHint();
   if(st.anger>=st.persona.angerThreshold)return loseDeal(LOSE.enojo);
-  renderAll();
+  renderAll();showClientReaction();
+}
+
+// #2: muestra la RESPUESTA del cliente bien visible (modal, como "Problema en la operación").
+// Si hay contraoferta, da el botón para aceptarla en el acto. Rompe el "enviar sin leer".
+function showClientReaction(){
+  const st=G.st;
+  if(st.finished || document.getElementById('reactModal')) return;
+  const acc=Math.round(acceptance()*100);
+  const emoji = acc>50?'🙂':acc>30?'😐':'😟';
+  const accColor = acc>50?'var(--good)':acc>30?'var(--warn)':'var(--bad)';
+  let acciones='';
+  if(st.counter!=null){
+    acciones+=`<div class="hub-action" onclick="document.getElementById('reactModal').remove();acceptCounter()" style="border-color:var(--good)">
+      <span class="ha-icon">✅</span><div class="ha-content">
+      <div class="ha-title" style="color:var(--good)">Aceptar ${money(st.counter)}</div>
+      <div class="ha-desc">Cerrás el trato ya, a ese precio.</div></div></div>`;
+  } else if(st.counterTerm!=null){
+    acciones+=`<div class="hub-action" onclick="document.getElementById('reactModal').remove();acceptCounter()" style="border-color:var(--good)">
+      <span class="ha-icon">✅</span><div class="ha-content">
+      <div class="ha-title" style="color:var(--good)">Aceptar y cobrar a ${st.counterTerm} días</div>
+      <div class="ha-desc">Cerrás ya, dándole ese plazo de pago.</div></div></div>`;
+  }
+  acciones+=`<div class="hub-action" onclick="document.getElementById('reactModal').remove()" style="border-color:var(--accent)">
+    <span class="ha-icon">↩️</span><div class="ha-content">
+    <div class="ha-title">Seguir negociando</div>
+    <div class="ha-desc">${acc<25?'Está lejos: bajá el precio, cambiá el plazo o usá una táctica.':'Ajustá una palanca y volvé a ofrecer.'}</div></div></div>`;
+  const d=document.createElement('div');d.className='modal';d.id='reactModal';
+  d.innerHTML=`<div class="modal-box">
+    <div class="modal-title">${emoji} ${st.cargo.co} te responde</div>
+    <div class="story">${st.clientMsg}</div>
+    <div style="font-size:12px;color:var(--muted);margin:6px 0 10px">Interés del cliente: <b style="color:${accColor}">${acc}%</b> · Ronda ${st.round}/${st.persona.maxRounds}</div>
+    ${acciones}
+  </div>`;
+  document.body.appendChild(d);
 }
 
 function acceptCounter(){
@@ -1117,7 +1162,7 @@ function syncCostoSiReservado(){
     c.unwinnable=c.clientMaxViable<Math.round(c.costo*1.10);
     // reacomodar el precio dentro del nuevo rango válido
     const floor=Math.round(c.costo*1.10), cap=Math.round(c.costo*1.55);
-    if(G.st.price==null) G.st.price=Math.round(c.costo*1.18);
+    if(G.st.price==null) G.st.price=Math.max(floor,Math.min(cap,Math.round(c.costo*(c.startMarkup||1.18))));
     else G.st.price=Math.max(floor,Math.min(cap,G.st.price));
   }
 }
@@ -1221,7 +1266,9 @@ function lockAgent(){
   c.transit=an.transit;c.agentTerm=an.plazo;c.prioridad=an.prioridad;
   c.clientMaxViable=Math.round(c.costo*c.viableMult);
   c.unwinnable=c.clientMaxViable<Math.round(c.costo*1.10);
-  G.st.price=Math.round(c.costo*1.18);
+  // #3: precio inicial con markup variable por operación (no siempre el mismo 18%)
+  const _floor=Math.round(c.costo*1.10), _cap=Math.round(c.costo*1.55);
+  G.st.price=Math.max(_floor,Math.min(_cap,Math.round(c.costo*(c.startMarkup||1.18))));
   G.rel[an.agentId]=Math.min(100,G.rel[an.agentId]+1);
   log("📑 Reservaste tarifa con "+agentById(an.agentId).nombre+": "+money(an.offer)+" (pago a "+an.plazo+"d).");
   track('agent_lock',{agente:agentById(an.agentId).nombre, costo:an.offer, plazo:an.plazo, transit:an.transit});
