@@ -1865,7 +1865,9 @@ function renderAgenteLista(){
   const cards=G.st.offers.map(o=>{
     const a=agentById(o.agentId),rel=G.rel[o.agentId];
     const locked=c.agentId===o.agentId;
-    const ahorro=c.marketBase-o.price;
+    // Si este agente ya está reservado, mostrar el precio NEGOCIADO (no el original de la lista).
+    const precio = locked && c.costo!=null ? c.costo : o.price;
+    const ahorro=c.marketBase-precio;
     return `<div class="agent-card ${locked?'selected':''}">
       <div class="agent-header">
         <div class="agent-avatar">${a.emoji}</div>
@@ -1885,7 +1887,7 @@ function renderAgenteLista(){
         <span class="agent-stat">💳 Max <b>${a.plazoMax}d</b></span>
       </div>
       <div class="agent-price-row">
-        <span class="agent-price">${money(o.price)}</span>
+        <span class="agent-price">${money(precio)}${locked?' <span style="font-size:11px;color:var(--good)">✓ reservado</span>':''}</span>
         ${ahorro>=0?`<span class="agent-savings">🟢 Ahorras ${money(ahorro)}</span>`:`<span class="agent-loss">🔴 +${money(-ahorro)} vs mercado</span>`}
         <button class="btn btn-violet" style="padding:10px 16px;font-size:13px;flex:0 auto" onclick="openAgentNeg('${o.agentId}')">${locked?'Renegociar':'Negociar →'}</button>
       </div>
