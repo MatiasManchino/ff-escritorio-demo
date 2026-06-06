@@ -659,7 +659,7 @@ const CARGOS=[
    historia:"¡Somos una empresa de vinos, hacemos los mejores de Mendoza! El mes pasado nos pidieron muchísimo de Italia… ¡Italia, imaginate! En fin, esta vez le mandamos 3 contenedores a Estados Unidos. Eso sí: necesitan control de temperatura, ¿ustedes hacen ese tipo de trabajo? ¡Excelente! Entonces te pido por favor una cotización. ¡Gracias!",motivo:"Que el vino llegue impecable a su nuevo comprador."},
   {co:"Minera Cerro Grande",op:"Importacion",merc:"Repuestos criticos",desc:"850 kg",ruta:"Santiago → Lima",modo:"aereo",base:4500,urgente:true,
    historia:"Mirá, te voy a ser directo porque no tengo tiempo: la mina está PARADA. Cada día que pasa perdemos ciento veinte mil dólares. Necesito esa pieza acá HOY, no mañana. El precio es lo de menos, lo que necesito es velocidad. ¿Me podés resolver esto ya?",motivo:"Frenar una sangría de plata por día."},
-  {co:"AgroServicios SRL",op:"Importacion",merc:"Cosechadora 12,5 t",desc:"Sobredimensionada",ruta:"Cordoba → Rio Cuarto",modo:"terrestre",base:2835,urgente:false,
+  {co:"AgroServicios SRL",op:"Importacion",merc:"Cosechadora 12,5 t",desc:"Sobredimensionada",ruta:"Cordoba → Lima ",modo:"terrestre",base:2835,urgente:false,
    historia:"Me compré la cosechadora más grande de mi vida, una bestia. La necesito en el campo antes de que arranque la cosecha. Pero te soy honesto: no me sobra un peso y ya tengo otra cotización más barata. Convenceme.",motivo:"Llegar a la cosecha sin fundirse en el flete."},
   {co:"Estudio Varela",op:"Importacion",merc:"Muebles de diseno",desc:"18 CBM",ruta:"Milano → Buenos Aires",modo:"maritimo",base:5800,urgente:false,
    historia:"Traigo muebles italianos para un showroom que inauguro en seis semanas. Estas piezas son EL centro de la muestra, no puede pasarles nada. Busco un servicio premium, de primera… el precio más barato no me interesa, me interesa que lleguen perfectas.",motivo:"Que las piezas lleguen impecables y a tiempo."},
@@ -1002,10 +1002,29 @@ function registrarRegateoFallido(){
 //  NEGOTIATION LOGIC (AGENT)
 // ═══════════════════════════════════════════════════════════════════════
 
+// Si el agente que estás (re)negociando es el que ya tenías reservado, sincroniza
+// el costo del cliente con la oferta actual EN VIVO (así no hay que re-tomar la tarifa
+// para que se actualice el monto de compra). Mantiene precio/viable/unwinnable al día.
+function syncCostoSiReservado(){
+  const an=G.aneg,c=G.st.cargo; if(!an) return;
+  if(c.agentId===an.agentId){
+    c.costo=an.offer; c.conf=an.conf; c.transit=an.transit; c.agentTerm=an.plazo; c.prioridad=an.prioridad;
+    c.clientMaxViable=Math.round(c.costo*c.viableMult);
+    c.unwinnable=c.clientMaxViable<Math.round(c.costo*1.10);
+    // reacomodar el precio dentro del nuevo rango válido
+    const floor=Math.round(c.costo*1.10), cap=Math.round(c.costo*1.55);
+    if(G.st.price==null) G.st.price=Math.round(c.costo*1.18);
+    else G.st.price=Math.max(floor,Math.min(cap,G.st.price));
+  }
+}
+
 function openAgentNeg(agentId){
   const off=G.st.offers.find(o=>o.agentId===agentId),a=agentById(agentId);
+  // Si estás RENEGOCIANDO el agente ya reservado, arrancá desde el costo actual (no desde la lista vieja).
+  const yaReservado = G.st.cargo.agentId===agentId && G.st.cargo.costo!=null;
+  const startOffer = yaReservado ? G.st.cargo.costo : off.price;
   G.aneg={
-    agentId,offer:off.price,floor:off.floor,round:0,
+    agentId,offer:startOffer,floor:off.floor,round:0,
     transit:off.transit,validez:off.validez,conf:off.conf,
     plazo:Math.min(G.supplierTerm,a.plazoMax),prioridad:false,
     tactics:{farol:false,volumen:false,prioridad:false},
@@ -1042,6 +1061,7 @@ function agentDescuento(){
     an.msg=pick(AGENT_TIRED);
     G.rel[an.agentId]=Math.max(0,G.rel[an.agentId]-2);
   }
+  syncCostoSiReservado();
   renderAll();
 }
 
@@ -1076,6 +1096,7 @@ function agentTactic(t){
     an.msg="Espacio garantizado y salida prioritaria. Suma "+money(Math.round(an.offer-an.offer/1.08))+".";
     flash("Pediste prioridad: +costo, pero asegura el embarque.");
   }
+  syncCostoSiReservado();
   renderAll();
 }
 
@@ -1083,6 +1104,7 @@ function setAgentPlazo(d){
   const a=agentById(G.aneg.agentId);
   if(d>a.plazoMax){flash(a.nombre+" no te da mas de "+a.plazoMax+"d de credito.");return;}
   G.aneg.plazo=d;
+  syncCostoSiReservado();
   renderAll();
 }
 
@@ -1791,7 +1813,7 @@ function renderClienteCotizar(){
 
     <div class="btn-row">
       <button class="btn btn-primary nudge" onclick="sendQuote()">📨 Enviar cotización</button>
-      <button class="btn btn-ghost" onclick="goPanel(0)">🚢 Cambiar agente</button>
+      <button class="btn btn-ghost" onclick="goPanel(0)">🚢 Cambiar agente o renegociar</button>
     </div>
     <div class="btn-row" style="margin-top:8px">
       <button class="btn btn-danger" onclick="declineClient()">🙇 No puedo ayudarte esta vez</button>
