@@ -530,6 +530,17 @@
   .goal-lbl{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:3px}
   .goal-bar{height:6px;background:#0e1830;border-radius:4px;overflow:hidden}
   .goal-bar>i{display:block;height:100%;border-radius:4px;transition:width .4s cubic-bezier(.32,.72,0,1)}
+  /* barra de chance de cierre (reacciona en vivo al precio) */
+  .close-bar{height:10px;background:#0e1830;border-radius:6px;overflow:hidden;margin:8px 0 0}
+  .close-bar>i{display:block;height:100%;border-radius:6px;transition:width .2s ease,background .2s ease}
+  /* mini-tarjetas de resultado de envío (centro-arriba) */
+  .result-area{position:fixed;top:120px;left:0;right:0;z-index:305;display:flex;flex-direction:column;align-items:center;gap:8px;pointer-events:none}
+  .result-card{display:flex;align-items:center;gap:10px;background:var(--panel);border:2px solid var(--line);
+    border-radius:14px;padding:10px 16px;box-shadow:var(--shadow-lg);max-width:340px;
+    animation:slideUp .3s ease;transition:opacity .4s,transform .4s}
+  .result-card .rc-emoji{font-size:26px}
+  .result-card .rc-title{font-weight:800;font-size:14px}
+  .result-card .rc-detail{font-size:12px;color:var(--muted)}
   .guide-spacer{height:104px;flex-shrink:0}     /* deja lugar para la guía + barra de meta */
 
   /* Resalta el botón/elemento que conviene tocar ahora */
@@ -624,6 +635,9 @@
       <span class="dot-label">Clientes</span>
     </div>
   </div>
+
+  <!-- Mini-tarjetas de resultado de envíos (cobrado / no pagó) -->
+  <div class="result-area" id="resultArea"></div>
 
   <!-- Botón flotante de AYUDA (modo tutorial) -->
   <button class="help-fab" id="helpFab" onclick="toggleHelp()">❓</button>
@@ -1162,6 +1176,7 @@ function resolveOps(){
       G.problems++;addRep(-10);
       log("🟥 "+o.co+" NO PAGÓ. Perdiste "+money(o.costo)+". (reputación -10)");
       floatNum("−"+money(o.costo),"var(--bad)"); popCaja(); sndBad();
+      opResultCard("🟥",o.co+" no pagó","Perdiste "+money(o.costo)+" · fama -10","var(--bad)");
     }else if(Math.random()<o.risk.ops){
       // PROBLEMA OPERATIVO: no se resuelve solo. Se encola para que el jugador DECIDA.
       const ex=Math.round((o.price-o.costo)*rnd(0.5,1.4));
@@ -1173,6 +1188,7 @@ function resolveOps(){
       if(o.agentId)G.rel[o.agentId]=Math.min(100,G.rel[o.agentId]+3);
       log("💰 "+o.co+" pagó "+money(o.price)+". Entrega a tiempo. (reputación +3)");
       floatNum("+"+money(o.price),"var(--good)"); popCaja(); sndCash();
+      opResultCard("✅",o.co+" pagó "+money(o.price),"Entrega a tiempo · fama +3","var(--good)");
     }
   }
 }
@@ -1258,6 +1274,15 @@ function confetti(){
 function bigToast(txt){
   const t=document.createElement('div');t.className='toast-big';t.innerHTML=txt;
   document.body.appendChild(t);setTimeout(()=>t.remove(),1500);
+}
+// Mini-tarjeta de resultado de un envío (cobrado / no pagó), apilable.
+let _resultStack=[];
+function opResultCard(emoji,titulo,detalle,color){
+  const c=document.createElement('div');c.className='result-card';
+  c.style.borderColor=color;
+  c.innerHTML=`<span class="rc-emoji">${emoji}</span><div><div class="rc-title" style="color:${color}">${titulo}</div><div class="rc-detail">${detalle}</div></div>`;
+  $("resultArea").appendChild(c);
+  setTimeout(()=>{c.style.opacity="0";c.style.transform="translateX(40px)";setTimeout(()=>c.remove(),400);},3200);
 }
 // Número que sube flotando desde una posición (ej: +$300 verde, -$150 rojo).
 function floatNum(txt,color,x,y){
@@ -1817,9 +1842,14 @@ function renderClienteCotizar(){
         <div class="duo-value" style="color:var(--good)">${money(st.price-costo)}</div>
       </div>
       <div class="duo-box">
-        <div class="duo-label">Cierre estimado</div>
-        <div class="duo-value" style="color:${acc>0.5?'var(--good)':acc>0.3?'var(--warn)':'var(--bad)'}">${Math.round(acc*100)}%</div>
+        <div class="duo-label">Chance de que acepte</div>
+        <div class="duo-value" style="color:${acc>0.5?'var(--good)':acc>0.3?'var(--warn)':'var(--bad)'}">${acc>0.6?'😀':acc>0.4?'🙂':'😟'} ${Math.round(acc*100)}%</div>
       </div>
+    </div>
+    <!-- Barra de chance de cierre EN VIVO: reacciona al mover el precio -->
+    <div class="close-bar"><i style="width:${Math.round(acc*100)}%;background:${acc>0.5?'var(--good)':acc>0.3?'var(--warn)':'var(--bad)'}"></i></div>
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px">
+      <span>← más barato cierra más fácil</span><span>más caro ganás más →</span>
     </div>
 
     <div class="section-lbl">Analisis</div>
