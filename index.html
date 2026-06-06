@@ -655,21 +655,21 @@ const PERSONAS={
 };
 
 const CARGOS=[
-  {co:"Bodega Los Andes",op:"Exportacion",merc:"Vinos (reefer)",desc:"3x40'HC",ruta:"Mendoza → Miami",modo:"maritimo",base:5200,urgente:false,
+  {co:"Bodega Los Andes",op:"Exportación",merc:"Vinos (reefer)",desc:"3x40'HC",ruta:"Mendoza → Miami",modo:"maritimo",base:5200,urgente:false,
    historia:"¡Somos una empresa de vinos, hacemos los mejores de Mendoza! El mes pasado nos pidieron muchísimo de Italia… ¡Italia, imaginate! En fin, esta vez le mandamos 3 contenedores a Estados Unidos. Eso sí: necesitan control de temperatura, ¿ustedes hacen ese tipo de trabajo? ¡Excelente! Entonces te pido por favor una cotización. ¡Gracias!",motivo:"Que el vino llegue impecable a su nuevo comprador."},
-  {co:"Minera Cerro Grande",op:"Importacion",merc:"Repuestos criticos",desc:"850 kg",ruta:"Santiago → Lima",modo:"aereo",base:4500,urgente:true,
+  {co:"Minera Cerro Grande",op:"Importación",merc:"Repuestos críticos",desc:"850 kg",ruta:"Santiago → Lima",modo:"aereo",base:4500,urgente:true,
    historia:"Mirá, te voy a ser directo porque no tengo tiempo: la mina está PARADA. Cada día que pasa perdemos ciento veinte mil dólares. Necesito esa pieza acá HOY, no mañana. El precio es lo de menos, lo que necesito es velocidad. ¿Me podés resolver esto ya?",motivo:"Frenar una sangría de plata por día."},
-  {co:"AgroServicios SRL",op:"Importacion",merc:"Cosechadora 12,5 t",desc:"Sobredimensionada",ruta:"Cordoba → Lima ",modo:"terrestre",base:2835,urgente:false,
+  {co:"AgroServicios SRL",op:"Importación",merc:"Cosechadora 12,5 t",desc:"Sobredimensionada",ruta:"Córdoba → Lima ",modo:"terrestre",base:2835,urgente:false,
    historia:"Me compré la cosechadora más grande de mi vida, una bestia. La necesito en el campo antes de que arranque la cosecha. Pero te soy honesto: no me sobra un peso y ya tengo otra cotización más barata. Convenceme.",motivo:"Llegar a la cosecha sin fundirse en el flete."},
-  {co:"Estudio Varela",op:"Importacion",merc:"Muebles de diseno",desc:"18 CBM",ruta:"Milano → Buenos Aires",modo:"maritimo",base:5800,urgente:false,
+  {co:"Estudio Varela",op:"Importación",merc:"Muebles de diseño",desc:"18 CBM",ruta:"Milano → Buenos Aires",modo:"maritimo",base:5800,urgente:false,
    historia:"Traigo muebles italianos para un showroom que inauguro en seis semanas. Estas piezas son EL centro de la muestra, no puede pasarles nada. Busco un servicio premium, de primera… el precio más barato no me interesa, me interesa que lleguen perfectas.",motivo:"Que las piezas lleguen impecables y a tiempo."},
-  {co:"Flores del Valle",op:"Exportacion",merc:"Rosas (cadena de frio)",desc:"1.800 kg",ruta:"Medellin → Miami",modo:"aereo",base:2900,urgente:true,
+  {co:"Flores del Valle",op:"Exportación",merc:"Rosas (cadena de frío)",desc:"1.800 kg",ruta:"Medellín → Miami",modo:"aereo",base:2900,urgente:true,
    historia:"Exportamos rosas dos veces por semana, y esto es delicado: si se corta la cadena de frío aunque sea un rato, la carga entera es basura. Pérdida total. Necesito que me garantices el frío de punta a punta.",motivo:"Que la flor llegue fresca, sí o sí."},
-  {co:"TechSur S.A.",op:"Importacion",merc:"Electronica",desc:"2x40'HC",ruta:"Shanghai → Buenos Aires",modo:"maritimo",base:5600,urgente:false,
+  {co:"TechSur S.A.",op:"Importación",merc:"Electrónica",desc:"2x40'HC",ruta:"Shanghái → Buenos Aires",modo:"maritimo",base:5600,urgente:false,
    historia:"Buenas. Necesitamos importar esta carga de electrónica, es una operación importante para nosotros. Te aviso de una: estamos pidiendo cotización a varios forwarders, así que tirame tu mejor propuesta y vemos.",motivo:"La mejor relación precio/servicio del mercado."},
-  {co:"Pesquera Austral",op:"Exportacion",merc:"Langostinos premium",desc:"900 kg",ruta:"Trelew → Madrid",modo:"aereo",base:3400,urgente:true,
+  {co:"Pesquera Austral",op:"Exportación",merc:"Langostinos premium",desc:"900 kg",ruta:"Trelew → Madrid",modo:"aereo",base:3400,urgente:true,
    historia:"Le mandamos langostino premium a un restaurante de Madrid que paga por la frescura, no por otra cosa. Si la carga demora, el producto pierde valor y yo pierdo al cliente. Acá la velocidad lo es todo.",motivo:"Mantener al comprador exigente de Madrid."},
-  {co:"Importadora Norte",op:"Importacion",merc:"Repuestos de auto",desc:"1x40'",ruta:"Busan → Valparaiso",modo:"maritimo",base:2600,urgente:false,
+  {co:"Importadora Norte",op:"Importación",merc:"Repuestos de auto",desc:"1x40'",ruta:"Busan → Valparaíso",modo:"maritimo",base:2600,urgente:false,
    historia:"Traigo repuestos todos los meses, así que conozco los números de este rubro mejor que vos, te lo digo de una. No me vas a vender humo: quiero pagar lo justo y ni un peso más.",motivo:"Pagar exactamente lo que vale, nada más."},
 ];
 
@@ -850,6 +850,7 @@ function sendQuote(){
   // Pasa con el "Ahorrador" duro y en última ronda. Ahí abrimos la DECISIÓN a pérdida.
   const lowTarget=Math.round(st.cargo.costo*st.persona.targetMult);
   if(lowTarget<floor && st.round>=2 && st.persona.priceSens>=70){
+    st.round--;   // esta no cuenta como ronda: es un ultimátum del cliente, no un ida y vuelta
     const lossPrice=Math.max(lowTarget, Math.round(st.cargo.costo*0.93)); // hasta ~-7%
     st.clientMsg="“Es lo único que puedo pagar: "+money(lossPrice)+". Tomalo o lo dejamos.”";
     revealHint(); renderAll(); showLossModal(lossPrice); return;
@@ -970,8 +971,15 @@ function closeDeal(){
   }
   G.hagglePend=false;
   G.ops.push({co:st.cargo.co,price:st.price,costo:st.cargo.costo,risk,payDay,costDay,costPaid:false,agentId:st.cargo.agentId});
-  log("✅ Cerraste "+st.cargo.co+" a "+money(st.price)+" (margen "+Math.round(m*100)+"%). Cobras en "+st.term+"d.");
-  confetti(); bigToast("🎉 ¡Trato cerrado!<br>Ganás "+money(st.price-st.cargo.costo));
+  const gan=st.price-st.cargo.costo;
+  if(st.tookLoss){
+    // Cerraste a pérdida a propósito (apuesta por el cliente): cartel distinto, sin confeti.
+    log("🤝 Cerraste "+st.cargo.co+" a PÉRDIDA ("+money(gan)+") apostando a la relación.");
+    bigToast("🤝 Invertiste en el cliente<br>"+money(gan)+" ahora, por su confianza");
+  }else{
+    log("✅ Cerraste "+st.cargo.co+" a "+money(st.price)+" (margen "+Math.round(m*100)+"%). Cobras en "+st.term+"d.");
+    confetti(); bigToast("🎉 ¡Trato cerrado!<br>Ganás "+money(gan));
+  }
   renderAll();
 }
 
@@ -1485,8 +1493,6 @@ function renderGuide(){
         </div>`).join("")}
     </div>
     <div class="guide-msg">${msg}</div>`;
-  // recordamos a dónde "empuja" la guía, para resaltar el botón correcto al renderizar paneles
-  G._guideWhere=where;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
