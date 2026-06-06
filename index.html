@@ -814,6 +814,7 @@ function newGame(){
     // Si se acumula, el agente se cansa y deja de bajar. Se resetea al cerrar con él.
     haggleFail:{}, hagglePend:false,
     goal:20000,                 // meta de caja (barra de objetivo)
+    won:false,                  // ya alcanzaste la meta al menos una vez (modo libre)
     clientHist:{},              // historial por empresa: {deals, profit}
     monthStartCash:6000,        // para el resumen de fin de mes
     seenTips:{}                 // tooltips contextuales ya mostrados
@@ -1367,6 +1368,38 @@ function tick(d){
     if(G.supplierTerm<45){G.supplierTerm+=15;log("Reputacion arriba: tus agentes te estiran el credito.");}
     else log("Reputacion arriba: llegan clientes y cargas mas grandes.");
   }
+  checkVictory();   // #5: ¿la caja llegó a la meta?
+}
+
+// #5 VICTORIA: la primera vez que la caja llega a la meta, celebramos y dejamos elegir
+// entre cerrar la corrida (pantalla de victoria) o seguir en modo libre.
+function checkVictory(){
+  if(G.won || G.over) return;
+  if(G.cash >= G.goal){
+    G.won=true;
+    track('victory',{dia:G.day, cash:Math.round(G.cash), rep:G.rep, deals:G.deals, lost:G.lost});
+    flushEvents();
+    showVictoryModal();
+  }
+}
+function showVictoryModal(){
+  if(document.getElementById('winModal')) return;
+  confetti(); sndDeal();
+  const d=document.createElement('div');d.className='modal';d.id='winModal';
+  d.innerHTML=`<div class="modal-box center">
+    <div class="intro-logo">🏆</div>
+    <div class="modal-title" style="color:var(--good)">¡Llegaste a la meta!</div>
+    <p style="color:var(--txt2);font-size:14px;line-height:1.5">Alcanzaste <b>${money(G.goal)}</b> de caja en el día <b>${G.day}</b>. Construiste un negocio que funciona. 👏</p>
+    <div class="score-grid" style="margin:12px 0">
+      <div class="score-cell"><div class="score-label">Cerrados</div><div class="score-value" style="color:var(--good)">${G.deals}</div></div>
+      <div class="score-cell"><div class="score-label">Perdidos</div><div class="score-value" style="color:var(--bad)">${G.lost}</div></div>
+      <div class="score-cell"><div class="score-label">Día</div><div class="score-value">${G.day}</div></div>
+      <div class="score-cell"><div class="score-label">Reputación</div><div class="score-value">${G.rep}</div></div>
+    </div>
+    <button class="modal-close" onclick="this.closest('.modal').remove()">▶ Seguir jugando (modo libre)</button>
+    <button class="modal-close ghost" onclick="this.closest('.modal').remove();G.overReason='victoria';gameOver();">🏁 Terminar la partida</button>
+  </div>`;
+  document.body.appendChild(d);
 }
 
 function nextOrEnd(){
@@ -1390,7 +1423,7 @@ function advanceTime(){
 
 function gameOver(){
   G.over=true;
-  track('game_over',{dia:G.day, cash:Math.round(G.cash), rep:G.rep, deals:G.deals, lost:G.lost, motivo:G.cash<=0?"bancarrota":"fin"});
+  track('game_over',{dia:G.day, cash:Math.round(G.cash), rep:G.rep, deals:G.deals, lost:G.lost, motivo:G.overReason||(G.cash<=0?"bancarrota":"fin")});
   flushEvents(true);
   if(feedbackTimeout)clearTimeout(feedbackTimeout);
   renderAll();
@@ -2213,15 +2246,19 @@ function renderAgenteNeg(){
 // ═══════════════════════════════════════════════════════════════════════
 
 function renderGameOver(){
+  const gano = G.overReason==="victoria";
   const porFama = G.overReason==="reputacion";
-  const emoji = porFama ? "📉" : "🏴";
-  const titulo = porFama ? "MALA FAMA" : "BANCARROTA";
-  const detalle = porFama
-    ? `Tu reputación tocó fondo (-100) en el día <b>${G.day}</b>. Ningún cliente quiere trabajar con vos.`
-    : `Te quedaste sin caja en el día <b>${G.day}</b>.`;
-  $("hub-content").innerHTML=`<div class="card center" style="margin-top:20px;border-color:var(--bad)">
+  const emoji = gano ? "🏆" : porFama ? "📉" : "🏴";
+  const titulo = gano ? "¡GANASTE!" : porFama ? "MALA FAMA" : "BANCARROTA";
+  const color = gano ? "var(--good)" : "var(--bad)";
+  const detalle = gano
+    ? `Llegaste a la meta de <b>${money(G.goal)}</b> y cerraste tu negocio con <b>${money(Math.round(G.cash))}</b> en caja, en el día <b>${G.day}</b>. 🎉`
+    : porFama
+      ? `Tu reputación tocó fondo (-100) en el día <b>${G.day}</b>. Ningún cliente quiere trabajar con vos.`
+      : `Te quedaste sin caja en el día <b>${G.day}</b>.`;
+  $("hub-content").innerHTML=`<div class="card center" style="margin-top:20px;border-color:${color}">
     <div style="font-size:48px;margin-bottom:8px">${emoji}</div>
-    <div class="big" style="color:var(--bad)">${titulo}</div>
+    <div class="big" style="color:${color}">${titulo}</div>
     <div style="margin:10px 0;font-size:14px">${detalle}</div>
     <div class="score-grid">
       <div class="score-cell"><div class="score-label">Cerrados</div><div class="score-value" style="color:var(--good)">${G.deals}</div></div>
@@ -2372,6 +2409,8 @@ function resolveIncident(absorb){
     log("💸 No hiciste descuento en "+inc.co+": cobraste todo pero quedó molesto. (reputación -5)");
   }
   renderAll();
+  checkVictory();   // #5: absorber/cobrar pudo haberte llevado a la meta
+  if(G.over) return;
   if(!checkIncidents()) continuarFlujo();   // si hay más incidentes encola otro; si no, sigue
 }
 // Tras resolver incidentes/premios, completa el avance que estaba pendiente.
