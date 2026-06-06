@@ -815,6 +815,7 @@ function newGame(){
     haggleFail:{}, hagglePend:false,
     goal:20000,                 // meta de caja (barra de objetivo)
     won:false,                  // ya alcanzaste la meta al menos una vez (modo libre)
+    clientNum:0,                // cuántos clientes llegaron (para la rampa de dificultad)
     clientHist:{},              // historial por empresa: {deals, profit}
     monthStartCash:6000,        // para el resumen de fin de mes
     seenTips:{}                 // tooltips contextuales ya mostrados
@@ -832,18 +833,31 @@ function newGame(){
 
 function newClient(){
   G.hagglePend=false;   // nueva carga: arranca sin regateo pendiente
-  const persona=pick(Object.values(PERSONAS));
+  G.clientNum=(G.clientNum||0)+1;
+  // RAMPA DE DIFICULTAD: los primeros 5 clientes son sencillos (NO Ahorrador, mercado
+  // tranquilo, techo comercial holgado, nunca imposibles) para que el novato gane un par
+  // y entienda el loop. Del 6to en adelante, dificultad completa (entran Ahorradores, etc.).
+  const easy = G.clientNum<=5;
+  const persona = easy
+    ? pick([PERSONAS.apurado, PERSONAS.confiable])   // los amistosos, sin Ahorrador
+    : pick(Object.values(PERSONAS));
   const base=pick(CARGOS);
   const scale=1+G.rep/200;   // rep 0 → x1.0 ; +100 → x1.5 ; -100 → x0.5 (escala nueva -100..100)
   let marketBase=Math.round(base.base*scale*rnd(0.9,1.15));
   let market="normal",flavor="";
   const r=Math.random();
-  if(r<0.18){market="barata";marketBase=Math.round(marketBase*0.80);flavor="🟢 Mercado en baja: vas a conseguir tarifas buenas con los agentes.";}
-  else if(r<0.40){market="cara";marketBase=Math.round(marketBase*1.26);flavor="🔴 Temporada alta: las tarifas estan caras en todos los agentes.";}
+  if(easy){
+    // Mercado normal o en baja (nunca "cara"): tarifas amigables al arrancar.
+    if(r<0.35){market="barata";marketBase=Math.round(marketBase*0.80);flavor="🟢 Mercado en baja: vas a conseguir tarifas buenas con los agentes.";}
+  } else {
+    if(r<0.18){market="barata";marketBase=Math.round(marketBase*0.80);flavor="🟢 Mercado en baja: vas a conseguir tarifas buenas con los agentes.";}
+    else if(r<0.40){market="cara";marketBase=Math.round(marketBase*1.26);flavor="🔴 Temporada alta: las tarifas estan caras en todos los agentes.";}
+  }
   // Techo comercial del cliente (a más de esto, no le cierra el negocio).
   // Lo mantenemos cómodo para que la mayoría sea cerrable; solo a veces es imposible (hay que pasar).
-  let viableMult = market==="cara"?rnd(1.18,1.38):rnd(1.25,1.60);
-  if(Math.random()<0.08) viableMult=rnd(1.05,1.12);   // 8%: clientes a los que conviene pasar
+  let viableMult = easy ? rnd(1.40,1.65)
+                        : (market==="cara"?rnd(1.18,1.38):rnd(1.25,1.60));
+  if(!easy && Math.random()<0.08) viableMult=rnd(1.05,1.12);   // 8%: clientes a los que conviene pasar (solo en dificultad plena)
 
   G.st={
     persona,
@@ -852,7 +866,7 @@ function newClient(){
       agentTerm:G.supplierTerm, prioridad:false,
       // #3: el precio inicial NO arranca siempre en el mismo margen. Varía por operación
       // (a veces queda alto y no cierra, a veces bajo y dejás plata). Obliga a mirar las palancas.
-      startMarkup:rnd(1.12,1.45),
+      startMarkup: easy ? rnd(1.12,1.25) : rnd(1.12,1.45),
       clientMaxViable:null, unwinnable:false},
     flavor, price:null, term:persona.prefTerm===0?0:30,
     transport:base.modo, round:0, anger:0,
