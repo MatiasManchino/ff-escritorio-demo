@@ -712,8 +712,7 @@ const TACTIC_KEYS =["tiempo","valor","anticipo","farol","volumen","prioridad"];
 
 let G;
 let feedbackTimeout=null, feedbackShown=false;
-let currentPanel=1; // 0=agentes, 1=hub, 2=clientes
-let activePanel=1;
+let activePanel=1; // 0=agentes, 1=hub, 2=clientes
 
 function newGame(){
   G={
@@ -747,14 +746,16 @@ function newClient(){
   G.hagglePend=false;   // nueva carga: arranca sin regateo pendiente
   const persona=pick(Object.values(PERSONAS));
   const base=pick(CARGOS);
-  const scale=1+(G.rep-50)/120;
+  const scale=1+G.rep/200;   // rep 0 → x1.0 ; +100 → x1.5 ; -100 → x0.5 (escala nueva -100..100)
   let marketBase=Math.round(base.base*scale*rnd(0.9,1.15));
   let market="normal",flavor="";
   const r=Math.random();
   if(r<0.18){market="barata";marketBase=Math.round(marketBase*0.80);flavor="🟢 Mercado en baja: vas a conseguir tarifas buenas con los agentes.";}
   else if(r<0.40){market="cara";marketBase=Math.round(marketBase*1.26);flavor="🔴 Temporada alta: las tarifas estan caras en todos los agentes.";}
-  let viableMult = market==="cara"?rnd(1.10,1.30):rnd(1.16,1.50);
-  if(Math.random()<0.12) viableMult=rnd(1.04,1.12);
+  // Techo comercial del cliente (a más de esto, no le cierra el negocio).
+  // Lo mantenemos cómodo para que la mayoría sea cerrable; solo a veces es imposible (hay que pasar).
+  let viableMult = market==="cara"?rnd(1.18,1.38):rnd(1.25,1.60);
+  if(Math.random()<0.08) viableMult=rnd(1.05,1.12);   // 8%: clientes a los que conviene pasar
 
   G.st={
     persona,
@@ -764,7 +765,7 @@ function newClient(){
       clientMaxViable:null, unwinnable:false},
     flavor, price:null, term:persona.prefTerm===0?0:30,
     transport:base.modo, round:0, anger:0,
-    satisfaction:Math.max(15,Math.min(85,40+Math.round((G.rep-50)*0.4))),
+    satisfaction:Math.max(15,Math.min(85,50+Math.round(G.rep*0.3))),   // rep 0 → 50 (escala -100..100)
     revealed:[], tactics:{tiempo:false,valor:false,anticipo:false},
     tacticBonus:0, counter:null, counterTerm:null,
     clientMsg:base.historia, finished:false, targetAsked:false, targetKnown:null
@@ -793,16 +794,18 @@ function agentById(id){return AGENTES.find(a=>a.id===id);}
 function acceptance(){
   const st=G.st,p=st.persona,costo=st.cargo.costo;
   if(!costo)return 0;
-  const target=costo*p.targetMult;
-  if(st.price>st.cargo.clientMaxViable) return 0.01;
-  let acc=0.25;
-  if(st.price<=target) acc+=0.30*(1-st.price/target);
-  else acc-=(p.priceSens/100)*Math.min((st.price-target)/target,0.5)*1.2;
+  // El "precio justo" del cliente nunca puede quedar por debajo de tu piso del 10%:
+  // así, ofrecer el mínimo SIEMPRE da una chance decente (nunca imposible por diseño).
+  const target=Math.max(costo*1.10, costo*p.targetMult);
+  if(st.price>st.cargo.clientMaxViable) return 0.02;
+  let acc=0.42;                                    // base más alta: un trato razonable cierra seguido
+  if(st.price<=target) acc+=0.35*(1-st.price/target+0.15);   // bonus extra si estás en/bajo el precio justo
+  else acc-=(p.priceSens/100)*Math.min((st.price-target)/target,0.5)*0.95;   // castigo por caro, más suave
   acc+=(st.term/60)*0.10;
-  acc-=Math.abs(st.term-p.prefTerm)/60*0.12;
-  if(st.cargo.modo==="aereo") acc+=p.urgency>60?0.16:-0.08;
+  acc-=Math.abs(st.term-p.prefTerm)/60*0.10;
+  if(st.cargo.modo==="aereo") acc+=p.urgency>60?0.16:-0.06;
   if(st.cargo.prioridad && p.urgency>60) acc+=0.10;
-  acc+=(st.satisfaction/100)*0.15;
+  acc+=(st.satisfaction/100)*0.12;
   acc-=st.anger*0.04;
   acc+=st.tacticBonus;
   return clamp01(acc);
@@ -1458,7 +1461,6 @@ function renderHud(){
   $("hud").style.display="flex";
   const falta=Math.max(0,G.nextMonthly-G.day);
   const alert=(G.cash<G.monthly&&falta<=6);
-  const pendingOffers=G.st&&G.st.cargo.costo==null?1:0;
   $("hud").innerHTML=`
     <div class="hud-cell ${alert?'alert':''}">
       <div class="hud-lbl">Caja</div>
@@ -1738,6 +1740,7 @@ function renderClienteCotizar(){
 
     ${st.revealed.length?`<div class="note"><span class="note-icon">💡</span><span>${st.revealed[st.revealed.length-1]}</span></div>`:""}
     <div class="note ${m<0.13||acc<0.4?'warn':''}"><span class="note-icon">💬</span><span>${advice(st,acc,risk.total,m)}</span></div>
+    ${c.unwinnable?`<div class="note" style="background:var(--bad-bg);border:1px solid rgba(248,113,113,0.3)"><span class="note-icon">🚫</span><span>A este cliente <b>no le cierra el negocio ni a tu precio mínimo</b>. Lo más inteligente es <b>pasar</b> esta carga.</span></div>`:""}
     ${st.targetKnown?`<div class="note" style="background:var(--good-bg);border:1px solid rgba(74,222,128,0.2)"><span class="note-icon">🎯</span><span>El cliente apunta a <b>${money(st.targetKnown)}</b>. Acercate a ese número.</span></div>`
       :`<div class="btn-row" style="margin-top:4px"><button class="btn btn-ghost" onclick="askTarget()" ${st.targetAsked?'disabled':''}>${st.targetAsked?'Ya le preguntaste':'🎯 Preguntar cuánto quiere pagar'}</button></div>`}
 
@@ -2081,10 +2084,25 @@ function resolveIncident(absorb){
 function continuarFlujo(){
   if(!G._needNew) return;
   if(checkTacticPrize()){ renderAll(); return; }   // si justo toca premio, mostralo antes del cliente nuevo
+  // CAPACIDAD: si ya tenés el máximo de operaciones en curso, no llega cliente nuevo
+  // hasta que se libere alguna (avanzando el tiempo).
+  if(G.ops.length>=G.capacity){ G.st=null; renderAll(); showSinCapacidad(); return; }
   G._needNew=false;
-  if(G.cash<0) return gameOver();
   newClient(); goPanel(1); renderAll();
   showConsultaModal();   // avisar que llegó una consulta nueva
+}
+// Modal de "sin capacidad": llegaste al máximo de operaciones en curso.
+function showSinCapacidad(){
+  if(document.getElementById('capModal')) return;
+  const d=document.createElement('div');d.className='modal';d.id='capModal';
+  d.innerHTML=`<div class="modal-box center">
+    <div class="intro-logo">📦</div>
+    <div class="modal-title">¡Estás a full!</div>
+    <p style="color:var(--txt2);font-size:14px;line-height:1.5">Tenés ${G.capacity} operaciones en curso, que es tu máximo. No podés tomar cargas nuevas hasta que se entregue alguna. Avanzá el tiempo para que lleguen los días de cobro y se liberen.</p>
+    <button class="modal-close" onclick="this.closest('.modal').remove();advanceTime();continuarFlujo();">⏩ Avanzar el tiempo</button>
+    <button class="modal-close ghost" onclick="this.closest('.modal').remove();showOpsModal();">📋 Ver mis operaciones</button>
+  </div>`;
+  document.body.appendChild(d);
 }
 
 function showRulesModal(){
