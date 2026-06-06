@@ -1414,7 +1414,7 @@ function renderHub(){
         </div>
       `:''}
       ${hasCost?`
-        <div class="hub-action" onclick="goPanel(2)" style="border-color:var(--accent)">
+        <div class="hub-action" onclick="showQuoteRequestModal()" style="border-color:var(--accent)">
           <span class="ha-icon">💰</span>
           <div class="ha-content">
             <div class="ha-title" style="color:var(--accent)">Cotizar al cliente</div>
@@ -1855,12 +1855,34 @@ function showIntro(){
     <div class="intro-step"><span class="n">🏢</span><div><div class="t">Deslizá → a Clientes</div><div class="d">Armá tu cotización y negociá la venta.</div></div></div>
     <div class="intro-step"><span class="n">💰</span><div><div class="t">Cerrá y cobrá</div><div class="d">Comprá barato, vendé caro, cuidá la caja.</div></div></div>
     <div class="note" style="background:var(--warn-bg);border:1px solid rgba(251,191,36,0.2);margin-top:12px"><span class="note-icon">🧠</span><span>Con el <b>agente</b> pensás "cómo gasto menos". Con el <b>cliente</b>, "cómo gano más".</span></div>
-    <button class="modal-close" onclick="this.closest('.modal').remove()">▶ Empezar a jugar</button>
+    <button class="modal-close" onclick="this.closest('.modal').remove();showConsultaModal()">▶ Empezar a jugar</button>
     <button class="modal-close ghost" onclick="this.closest('.modal').remove();showRulesModal()">📖 Ver reglas completas</button>
   </div>`;
   document.body.appendChild(d);
   // El centro (Hub) es el punto de partida natural detrás de la intro.
   goPanel(1);
+}
+
+// Modal de "consulta entrante": aparece cada vez que llega un cliente nuevo.
+// Muestra qué pide y un botón que te lleva a la pantalla del cliente para cotizar.
+function showConsultaModal(){
+  if(!G.st||G.over) return;
+  document.getElementById('consultaModal')?.remove();
+  const c=G.st.cargo;
+  const d=document.createElement('div');d.className='modal';d.id='consultaModal';
+  d.innerHTML=`<div class="modal-box">
+    <div class="center" style="font-size:38px">📞</div>
+    <div class="modal-title" style="text-align:center">¡Nueva consulta!</div>
+    <div class="card-header" style="margin-top:6px">
+      <div class="card-icon">🏢</div>
+      <div><div class="card-title">${c.co}</div>
+        <div class="card-subtitle">${G.rep>55?'Cliente conocido':'Cliente nuevo'} · ${c.op}</div></div>
+    </div>
+    <div class="story">«Hola, ${c.co} necesita mover ${c.desc} de ${c.merc}. Ruta ${c.ruta}. ${c.urgente?'Es URGENTE. ':''}¿Me pasás una cotización?»</div>
+    <button class="modal-close" onclick="this.closest('.modal').remove();goPanel(2)">📝 Atender y cotizar →</button>
+    <button class="modal-close ghost" onclick="this.closest('.modal').remove()">Ver primero el escritorio</button>
+  </div>`;
+  document.body.appendChild(d);
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1919,6 +1941,7 @@ function continuarFlujo(){
   G._needNew=false;
   if(G.cash<0) return gameOver();
   newClient(); goPanel(1); renderAll();
+  showConsultaModal();   // avisar que llegó una consulta nueva
 }
 
 function showRulesModal(){
@@ -2018,6 +2041,32 @@ function submitFeedback(){
 
   alert('¡Gracias por tu feedback! Se guardo correctamente.');
   modal.remove();
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+//  QUOTE REQUEST MODAL
+// ═══════════════════════════════════════════════════════════════════════
+
+function showQuoteRequestModal(){
+  const d=document.createElement('div');d.className='modal';d.id='quoteRequestModal';
+  const st=G.st, c=st.cargo;
+  d.innerHTML=`<div class="modal-box center">
+    <div style="font-size:48px;margin-bottom:8px">💬</div>
+    <div class="modal-title" style="color:var(--info)">Necesito cotización</div>
+    <div style="margin:12px 0;font-size:14px;color:var(--txt2);line-height:1.6">
+      <b>${c.co}</b> está pidiendo que armes una cotización para su carga:<br><br>
+      <span style="color:var(--muted)"><b>${c.desc}</b> · ${c.merc}</span>
+    </div>
+    <div style="background:var(--panel2);border-left:3px solid var(--info);padding:12px;margin:14px 0;border-radius:var(--radius-xs);font-size:13px;color:var(--txt2)">
+      "${c.historia}"
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="this.closest('.modal').remove();goPanel(2)">💰 Cotizar ahora →</button>
+    </div>
+    <button class="modal-close ghost" onclick="this.closest('.modal').remove()">Volver</button>
+  </div>`;
+  document.body.appendChild(d);
+  d.addEventListener('click',e=>{if(e.target===d)d.remove();});
 }
 
 // ═══════════════════════════════════════════════════════════════════════
