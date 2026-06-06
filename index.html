@@ -670,6 +670,63 @@ const shortMoney=n=>{
 };
 
 // ═══════════════════════════════════════════════════════════════════════
+//  ANALYTICS — tracking de comportamiento (se manda a tu Google Sheet)
+//  Captura: sesión, tiempo, cada acción del juego y cada click, en orden.
+//  Se envía en lotes (cada 15 ev. o 20s) y al cerrar/ocultar la pestaña.
+// ═══════════════════════════════════════════════════════════════════════
+const ANALYTICS_URL='https://script.google.com/macros/s/AKfycbyOMG6IUEs3Z5gBkU-o0oeUTqXRci83slZjvAWEvf1axCzqh-6jLIMfwIoVeYNkh8kX/exec';
+const SESSION_ID = (Date.now().toString(36)+Math.random().toString(36).slice(2,7)).toUpperCase();
+const SESSION_START = Date.now();
+let _evBuffer=[], _evSeq=0, _lastEventAt=SESSION_START;
+
+// Registra un evento. type = nombre del evento; data = objeto con parámetros.
+function track(type, data){
+  const now=Date.now();
+  _evBuffer.push({
+    kind:"event",
+    sid:SESSION_ID,
+    seq:++_evSeq,
+    t:type,
+    sinceStart: Math.round((now-SESSION_START)/1000),   // segundos desde que abrió
+    sincePrev:  Math.round((now-_lastEventAt)/1000),     // segundos desde la acción anterior
+    panel: typeof activePanel!=="undefined"?["agentes","escritorio","clientes"][activePanel]:"",
+    day:   (typeof G!=="undefined"&&G)?G.day:0,
+    cash:  (typeof G!=="undefined"&&G)?Math.round(G.cash):0,
+    rep:   (typeof G!=="undefined"&&G)?G.rep:0,
+    data:  data?JSON.stringify(data):"",
+    ts:    new Date().toISOString()
+  });
+  _lastEventAt=now;
+  if(_evBuffer.length>=15) flushEvents();
+}
+// Manda el lote acumulado a la planilla. useBeacon=true al cerrar (no bloquea).
+function flushEvents(useBeacon){
+  if(!_evBuffer.length) return;
+  const payload=JSON.stringify({kind:"analytics", sid:SESSION_ID, events:_evBuffer});
+  _evBuffer=[];
+  try{
+    if(useBeacon && navigator.sendBeacon){
+      navigator.sendBeacon(ANALYTICS_URL, payload);
+    }else{
+      fetch(ANALYTICS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:payload});
+    }
+  }catch(e){}
+}
+setInterval(()=>flushEvents(), 20000);                       // envío periódico
+// al cerrar/minimizar la pestaña: mandar lo que quede + marcar fin de sesión
+window.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'){ track('session_pause',{}); flushEvents(true); }});
+window.addEventListener('pagehide',()=>{ track('session_end',{durSeg:Math.round((Date.now()-SESSION_START)/1000)}); flushEvents(true); });
+
+// Captura AUTOMÁTICA de clicks: cualquier botón/control que toques queda registrado
+// con su texto, sin tener que instrumentar cada uno a mano.
+document.addEventListener('click',e=>{
+  const el=e.target.closest('button,.nav-dot,.hub-action,.agent-card,.seg-btn,.tactic');
+  if(!el) return;
+  const txt=(el.textContent||"").replace(/\s+/g," ").trim().slice(0,40);
+  track('click',{el:txt, cls:el.className.split(' ')[0]});
+}, true);
+
+// ═══════════════════════════════════════════════════════════════════════
 //  DATA
 // ═══════════════════════════════════════════════════════════════════════
 
@@ -767,6 +824,7 @@ function newGame(){
   if(feedbackTimeout) clearTimeout(feedbackTimeout);
   feedbackTimeout=setTimeout(()=>{ if(!G.over&&!feedbackShown) showFeedbackModal(); },120000);  // opinión a los 2 min
   log("Arrancas solo con "+money(G.cash)+". Gastos del mes: "+money(G.monthly)+".");
+  track('game_start',{});
   newClient();
   renderAll();
 }
@@ -800,6 +858,7 @@ function newClient(){
     clientMsg:base.historia, finished:false, targetAsked:false, targetKnown:null
   };
   buildOffers();
+  track('new_client',{empresa:base.co, modo:base.modo, urgente:base.urgente, mercado:market, persona:persona.key});
 }
 
 function buildOffers(){
@@ -861,6 +920,7 @@ function sendQuote(){
   const st=G.st;
   if(st.finished)return;
   st.round++;
+  track('send_quote',{empresa:st.cargo.co, precio:st.price, costo:st.cargo.costo, plazo:st.term, ronda:st.round, tacticas:st.tactics, interes:Math.round(acceptance()*100)});
   if(st.price>st.cargo.clientMaxViable){
     st.counter=null;st.counterTerm=null;st.clientMsg=LOSE.negocio;
     revealHint();
@@ -911,6 +971,7 @@ function useTactic(t){
   if((G.inv[t]||0)<=0){ flash("No te quedan tácticas de «"+TACTIC_NAMES[t]+"». Cerrá cargas para ganar más."); return; }
   G.inv[t]--;                                    // gasta una del inventario
   st.tactics[t]=true;
+  track('use_tactic',{tactica:t, empresa:st.cargo.co, persona:p.key, ronda:st.round});
   if(t==="tiempo"){
     if(p.urgency>60){st.tacticBonus+=0.18;flash("Presion de tiempo: le pico la urgencia.");}
     else{st.tacticBonus-=0.12;st.anger++;flash("Presion de tiempo: no tenia apuro, se MOLESTO.");}
@@ -932,6 +993,7 @@ function useTactic(t){
 // Es una salida digna: penaliza poco la fama. Si había agente reservado, se enfría un poco.
 function declineClient(){
   if(G.st.finished) return;
+  track('deal_abandoned',{empresa:G.st.cargo.co, teniaCosto:G.st.cargo.costo!=null, ronda:G.st.round});
   const frases=["Lo lamento, esta vez no llego con el número.","No te puedo ayudar en esta operación, disculpá.","Prefiero no tomar esta carga, no me cierra.","Te quedo debiendo esta; ahora no puedo."];
   G.lost++;
   if(G.st.cargo.agentId){
@@ -1004,6 +1066,7 @@ function closeDeal(){
   // memoria del cliente: cuántos tratos y cuánta ganancia acumulada le hiciste
   const h=G.clientHist[st.cargo.co]||(G.clientHist[st.cargo.co]={deals:0,profit:0});
   h.deals++; h.profit+=gan;
+  track('deal_closed',{empresa:st.cargo.co, precio:st.price, costo:st.cargo.costo, ganancia:gan, margen:Math.round(m*100), plazo:st.term, aPerdida:!!st.tookLoss, ronda:st.round});
   if(st.tookLoss){
     // Cerraste a pérdida a propósito (apuesta por el cliente): cartel distinto, sin confeti.
     log("🤝 Cerraste "+st.cargo.co+" a PÉRDIDA ("+money(gan)+") apostando a la relación.");
@@ -1019,6 +1082,7 @@ function loseDeal(msg){
   const st=G.st;
   st.finished=true;
   G.lost++;
+  track('deal_lost',{empresa:st.cargo.co, motivo:msg, teniaCosto:st.cargo.costo!=null, ronda:st.round});
   registrarRegateoFallido();        // si regateaste con el agente y no cerraste, lo recuerda
   // Una carga que NO cerraste pesa poco en tu fama (pero suma si se repite).
   addRep(-2);
@@ -1071,6 +1135,7 @@ function openAgentNeg(agentId){
     msg:"Para "+G.st.cargo.ruta+": "+money(off.price)+". Validez "+off.validez+" dias."
   };
   G.agentUi="negociar";
+  track('open_agent',{agente:a.nombre, oferta:startOffer, renegociando:yaReservado});
   goPanel(0);
   renderAll();
 }
@@ -1080,6 +1145,7 @@ const AGENT_TIRED=["No puedo bajar más, ya estoy al límite.","Voy a pérdida c
 
 function agentDescuento(){
   const an=G.aneg,a=agentById(an.agentId);
+  track('agent_haggle',{agente:a.nombre, ronda:an.round, ofertaActual:an.offer});
   G.hagglePend=true;                       // pediste rebaja en esta negociación
   // Si ya te cansó de regatear sin cerrar, NO baja más (memoria entre negociaciones).
   if((G.haggleFail[an.agentId]||0)>=2){
@@ -1111,6 +1177,7 @@ function agentTactic(t){
   if((G.inv[t]||0)<=0){ flash("No te quedan tácticas de «"+TACTIC_NAMES[t]+"». Cerrá cargas para ganar más."); return; }
   G.inv[t]--;                                     // gasta una del inventario
   an.tactics[t]=true;
+  track('agent_tactic',{agente:a.nombre, tactica:t});
   if(t==="farol"){
     if(Math.random()<0.45+a.flex){
       const nuevo=Math.max(an.floor,Math.round(an.offer*(1-a.flex*1.8)));
@@ -1157,6 +1224,7 @@ function lockAgent(){
   G.st.price=Math.round(c.costo*1.18);
   G.rel[an.agentId]=Math.min(100,G.rel[an.agentId]+1);
   log("📑 Reservaste tarifa con "+agentById(an.agentId).nombre+": "+money(an.offer)+" (pago a "+an.plazo+"d).");
+  track('agent_lock',{agente:agentById(an.agentId).nombre, costo:an.offer, plazo:an.plazo, transit:an.transit});
   G.aneg=null;G.agentUi="lista";
   goPanel(2); // auto-ir a clientes
   renderAll();
@@ -1246,6 +1314,8 @@ function advanceTime(){
 
 function gameOver(){
   G.over=true;
+  track('game_over',{dia:G.day, cash:Math.round(G.cash), rep:G.rep, deals:G.deals, lost:G.lost, motivo:G.cash<=0?"bancarrota":"fin"});
+  flushEvents(true);
   if(feedbackTimeout)clearTimeout(feedbackTimeout);
   renderAll();
 }
@@ -2285,6 +2355,7 @@ function showLossModal(lossPrice){
   document.body.appendChild(d);
 }
 function acceptLoss(lossPrice){
+  track('loss_decision',{accion:"aceptar_a_perdida", empresa:G.st.cargo.co, precio:lossPrice, costo:G.st.cargo.costo});
   document.getElementById('lossModal')?.remove();
   G.st.price=lossPrice;
   // Recompensa por bancar al cliente: si es bueno, salta su satisfacción (y vuelve mejor).
@@ -2385,8 +2456,10 @@ function submitFeedback(){
   const mins=Math.floor((Date.now()-G.startTime)/60000);
   const stats=`Dia ${G.day} | Cerrados ${G.deals} | Rep ${G.rep} | Caja ${shortMoney(G.cash)} | Min ${mins}`;
 
+  track('feedback_submit',{rating,again});
+  flushEvents();
   const GOOGLE_SCRIPT_URL='https://script.google.com/macros/s/AKfycbyOMG6IUEs3Z5gBkU-o0oeUTqXRci83slZjvAWEvf1axCzqh-6jLIMfwIoVeYNkh8kX/exec';
-  fetch(GOOGLE_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,rating,again,comments,stats,date:new Date().toLocaleString()})});
+  fetch(GOOGLE_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({sid:SESSION_ID,name,rating,again,comments,stats,date:new Date().toLocaleString()})});
 
   alert('¡Gracias por tu feedback! Se guardo correctamente.');
   modal.remove();
