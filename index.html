@@ -472,6 +472,68 @@
   .intro-step .t{font-weight:700;font-size:13.5px}
   .intro-step .d{font-size:11.5px;color:var(--muted)}
 
+  /* ===== JUICE: animaciones de vida ===== */
+  /* cartelito flotante de +$ / -$ que sube y se desvanece */
+  .float-num{
+    position:fixed;z-index:300;font-weight:800;font-size:20px;pointer-events:none;
+    animation:floatUp 1.1s ease-out forwards;text-shadow:0 2px 8px rgba(0,0,0,.6);
+  }
+  @keyframes floatUp{0%{opacity:0;transform:translateY(0) scale(.8)}15%{opacity:1;transform:translateY(-6px) scale(1.1)}100%{opacity:0;transform:translateY(-46px) scale(1)}}
+  /* latido cuando un valor del HUD cambia */
+  @keyframes valuePop{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
+  .pop{animation:valuePop .4s ease}
+  /* confeti de cierre de trato */
+  .confetti{position:fixed;inset:0;z-index:299;pointer-events:none;overflow:hidden}
+  .confetti i{position:absolute;top:-12px;width:9px;height:14px;border-radius:2px;animation:fall linear forwards}
+  @keyframes fall{to{transform:translateY(105vh) rotate(540deg);opacity:.9}}
+  /* cartel grande de "¡cerrado!" */
+  .toast-big{
+    position:fixed;left:50%;top:38%;transform:translate(-50%,-50%) scale(.6);z-index:301;
+    background:var(--good);color:#06210f;font-weight:800;font-size:20px;padding:14px 26px;border-radius:18px;
+    box-shadow:var(--shadow-lg);pointer-events:none;animation:bigPop 1.4s ease forwards;text-align:center;
+  }
+  @keyframes bigPop{0%{opacity:0;transform:translate(-50%,-50%) scale(.6)}20%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}75%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-60%) scale(1)}}
+
+  /* ===== GUÍA PASO A PASO (te lleva de la mano) ===== */
+  .guide{
+    position:fixed;left:0;right:0;z-index:95;
+    top:62px;                                   /* justo debajo del HUD */
+    background:linear-gradient(180deg,rgba(56,189,248,0.16),rgba(56,189,248,0));
+    padding:8px 12px 10px;
+  }
+  .guide-steps{display:flex;gap:6px;max-width:480px;margin:0 auto 6px}
+  .guide-step{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+    font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.3px;
+    position:relative;
+  }
+  .guide-step .gs-dot{
+    width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    background:var(--panel3);border:2px solid var(--line);font-size:12px;font-weight:800;color:var(--muted2);
+    transition:all .3s cubic-bezier(.32,.72,0,1);
+  }
+  .guide-step.done .gs-dot{background:var(--good);border-color:var(--good);color:#06210f}
+  .guide-step.now .gs-dot{background:var(--hub);border-color:var(--hub);color:#06222e;transform:scale(1.25);box-shadow:0 0 0 4px rgba(56,189,248,0.25)}
+  .guide-step.now{color:var(--hub);font-weight:800}
+  .guide-step.done{color:var(--good)}
+  /* línea que une los pasos */
+  .guide-step:not(:last-child)::after{
+    content:'';position:absolute;top:11px;left:60%;width:80%;height:2px;background:var(--line);z-index:-1;
+  }
+  .guide-step.done:not(:last-child)::after{background:var(--good)}
+  .guide-msg{
+    text-align:center;font-size:13px;font-weight:700;color:var(--txt);max-width:480px;margin:0 auto;line-height:1.3;
+  }
+  .guide-msg .gm-em{font-size:15px;margin-right:4px}
+  .guide-spacer{height:74px;flex-shrink:0}      /* deja lugar para la guía */
+
+  /* Resalta el botón/elemento que conviene tocar ahora */
+  @keyframes glowPulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(56,189,248,0.6)}
+    50%{box-shadow:0 0 0 8px rgba(56,189,248,0)}
+  }
+  .nudge{animation:glowPulse 1.6s infinite;border-radius:12px}
+
   /* ===== MODO AYUDA / TUTORIAL ===== */
   .help-fab{
     position:fixed;right:14px;bottom:72px;z-index:200;
@@ -511,6 +573,10 @@
   <!-- HUD -->
   <div class="hud" id="hud"></div>
   <div class="hud-spacer"></div>
+
+  <!-- Guía paso a paso (te dice qué hacer ahora) -->
+  <div class="guide" id="guide"></div>
+  <div class="guide-spacer"></div>
 
   <!-- Swipe Container -->
   <div class="panels-container" id="panels">
@@ -894,6 +960,7 @@ function closeDeal(){
   G.hagglePend=false;
   G.ops.push({co:st.cargo.co,price:st.price,costo:st.cargo.costo,risk,payDay,costDay,costPaid:false,agentId:st.cargo.agentId});
   log("✅ Cerraste "+st.cargo.co+" a "+money(st.price)+" (margen "+Math.round(m*100)+"%). Cobras en "+st.term+"d.");
+  confetti(); bigToast("🎉 ¡Trato cerrado!<br>Ganás "+money(st.price-st.cargo.costo));
   renderAll();
 }
 
@@ -1041,6 +1108,7 @@ function resolveOps(){
       // El cliente NO paga: lo peor que te puede pasar. Golpe fuerte a la fama.
       G.problems++;addRep(-10);
       log("🟥 "+o.co+" NO PAGÓ. Perdiste "+money(o.costo)+". (reputación -10)");
+      floatNum("−"+money(o.costo),"var(--bad)"); popCaja();
     }else if(Math.random()<o.risk.ops){
       // PROBLEMA OPERATIVO: no se resuelve solo. Se encola para que el jugador DECIDA.
       const ex=Math.round((o.price-o.costo)*rnd(0.5,1.4));
@@ -1051,6 +1119,7 @@ function resolveOps(){
       G.cash+=o.price;addRep(3);
       if(o.agentId)G.rel[o.agentId]=Math.min(100,G.rel[o.agentId]+3);
       log("💰 "+o.co+" pagó "+money(o.price)+". Entrega a tiempo. (reputación +3)");
+      floatNum("+"+money(o.price),"var(--good)"); popCaja();
     }
   }
 }
@@ -1109,6 +1178,39 @@ function revealHint(){
   if(h)G.st.revealed.push(h);
 }
 function flash(t){log("▶ "+t);}
+
+// ── JUICE: efectos de vida ─────────────────────────────────────────────
+// Confeti de colores cayendo (celebración).
+function confetti(){
+  const wrap=document.createElement('div');wrap.className='confetti';
+  const cols=['#f4845f','#4ade80','#60a5fa','#a78bfa','#fbbf24','#38bdf8'];
+  for(let i=0;i<70;i++){
+    const p=document.createElement('i');
+    p.style.left=Math.random()*100+'vw';
+    p.style.background=cols[i%cols.length];
+    p.style.animationDuration=(1+Math.random()*1.2)+'s';
+    p.style.animationDelay=(Math.random()*0.3)+'s';
+    wrap.appendChild(p);
+  }
+  document.body.appendChild(wrap);
+  setTimeout(()=>wrap.remove(),2600);
+}
+// Cartel grande de celebración (ej: "¡Trato cerrado! +$500").
+function bigToast(txt){
+  const t=document.createElement('div');t.className='toast-big';t.innerHTML=txt;
+  document.body.appendChild(t);setTimeout(()=>t.remove(),1500);
+}
+// Número que sube flotando desde una posición (ej: +$300 verde, -$150 rojo).
+function floatNum(txt,color,x,y){
+  const n=document.createElement('div');n.className='float-num';n.textContent=txt;
+  n.style.color=color;n.style.left=(x||window.innerWidth/2)+'px';n.style.top=(y||90)+'px';
+  document.body.appendChild(n);setTimeout(()=>n.remove(),1100);
+}
+// Latido en la celda de la Caja del HUD cuando cambia la plata.
+function popCaja(){
+  const el=document.querySelector('#hud .hud-cell .hud-val');
+  if(el){ el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+}
 
 // ── Sonido "clin!" de premio (Web Audio, sin archivos) ─────────────────
 let _audioCtx=null;
@@ -1300,10 +1402,51 @@ document.addEventListener("mouseup",  e=>gEnd(e.clientX));
 
 function renderAll(){
   renderHud();
+  renderGuide();
   renderHub();
   renderClientes();
   renderAgentes();
   if(G.over)renderGameOver();
+}
+
+// ── Guía paso a paso: muestra en qué etapa estás y qué conviene hacer ahora ──
+function renderGuide(){
+  const g=$("guide"); if(!g) return;
+  if(G.over){ g.style.display="none"; return; }
+  g.style.display="block";
+  const c=G.st?G.st.cargo:null;
+  const tieneCosto = c && c.costo!=null;
+  const cerrado = G.st && G.st.finished;
+
+  // Paso actual: 0 = buscar tarifa, 1 = poner precio, 2 = cerrado/terminó
+  let step = !tieneCosto ? 0 : (!cerrado ? 1 : 2);
+
+  // Mensaje + a dónde conviene ir, según el paso y en qué pantalla estás
+  let msg, where;
+  if(cerrado){
+    msg=`<span class="gm-em">🎉</span>¡Listo! Tocá <b>Siguiente cliente</b> para el próximo negocio.`; where=2;
+  } else if(!tieneCosto){
+    if(activePanel===0) msg=`<span class="gm-em">🚢</span>Elegí un transportista y <b>negociá el precio</b> (ese es tu costo).`;
+    else msg=`<span class="gm-em">👈</span>Andá a <b>Transportistas</b> (izquierda) para ver cuánto te sale llevar la carga.`;
+    where=0;
+  } else {
+    if(activePanel===2) msg=`<span class="gm-em">💲</span>Ponele <b>tu precio</b> (más alto que tu costo) y mandá la oferta.`;
+    else msg=`<span class="gm-em">👉</span>Ya tenés tu costo. Andá a <b>Clientes</b> (derecha) y ponele tu precio.`;
+    where=2;
+  }
+
+  const stepName=["Conseguir","Cotizar","Cerrar"];
+  const stepIcon=["🚚","💲","🤝"];
+  g.innerHTML=`
+    <div class="guide-steps">
+      ${[0,1,2].map(i=>`
+        <div class="guide-step ${i<step?'done':i===step?'now':''}">
+          <div class="gs-dot">${i<step?'✓':stepIcon[i]}</div>${stepName[i]}
+        </div>`).join("")}
+    </div>
+    <div class="guide-msg">${msg}</div>`;
+  // recordamos a dónde "empuja" la guía, para resaltar el botón correcto al renderizar paneles
+  G._guideWhere=where;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1531,7 +1674,7 @@ function renderClienteConsulta(){
       <span><b>Falta la tarifa.</b> Desliza → hacia <b>Agentes</b> para conseguir tu costo.</span>
     </div>
     <div class="btn-row">
-      <button class="btn btn-violet" onclick="goPanel(0)">🚢 Buscar tarifa →</button>
+      <button class="btn btn-violet nudge" onclick="goPanel(0)">🚢 Buscar tarifa →</button>
       <button class="btn btn-ghost" onclick="rejectClient()">Rechazar</button>
     </div>
   </div>`;
@@ -1629,7 +1772,7 @@ function renderClienteCotizar(){
     </div>
 
     <div class="btn-row">
-      <button class="btn btn-primary" onclick="sendQuote()">📨 Enviar cotizacion</button>
+      <button class="btn btn-primary nudge" onclick="sendQuote()">📨 Enviar cotización</button>
       <button class="btn btn-ghost" onclick="goPanel(0)">🚢 Cambiar agente</button>
     </div>
     <div class="btn-row" style="margin-top:8px">
@@ -1724,7 +1867,7 @@ function renderAgenteLista(){
         <span class="note-icon">✅</span>
         <span>Tarifa reservada: <b>${money(c.costo)}</b> con ${agentById(c.agentId).nombre}. Desliza → para cotizar al cliente.</span>
       </div>
-      <div class="btn-row"><button class="btn btn-primary" onclick="goPanel(2)">🏢 Ir a Clientes →</button></div>
+      <div class="btn-row"><button class="btn btn-primary nudge" onclick="goPanel(2)">🏢 Ir a Clientes →</button></div>
     `:''}
   </div>`;
 }
