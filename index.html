@@ -525,7 +525,12 @@
     text-align:center;font-size:13px;font-weight:700;color:var(--txt);max-width:480px;margin:0 auto;line-height:1.3;
   }
   .guide-msg .gm-em{font-size:15px;margin-right:4px}
-  .guide-spacer{height:74px;flex-shrink:0}      /* deja lugar para la guía */
+  /* barra de objetivo (meta de caja) */
+  .goal-wrap{max-width:480px;margin:8px auto 0}
+  .goal-lbl{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:3px}
+  .goal-bar{height:6px;background:#0e1830;border-radius:4px;overflow:hidden}
+  .goal-bar>i{display:block;height:100%;border-radius:4px;transition:width .4s cubic-bezier(.32,.72,0,1)}
+  .guide-spacer{height:104px;flex-shrink:0}     /* deja lugar para la guía + barra de meta */
 
   /* Resalta el botón/elemento que conviene tocar ahora */
   @keyframes glowPulse{
@@ -730,7 +735,11 @@ function newGame(){
     lastPrizeAt:0,
     // Memoria por agente: cuántas veces le hiciste bajar la tarifa y NO cerraste.
     // Si se acumula, el agente se cansa y deja de bajar. Se resetea al cerrar con él.
-    haggleFail:{}, hagglePend:false
+    haggleFail:{}, hagglePend:false,
+    goal:20000,                 // meta de caja (barra de objetivo)
+    clientHist:{},              // historial por empresa: {deals, profit}
+    monthStartCash:6000,        // para el resumen de fin de mes
+    seenTips:{}                 // tooltips contextuales ya mostrados
   };
   AGENTES.forEach(a=>G.haggleFail[a.id]=0);
   AGENTES.forEach(a=>G.rel[a.id]=50);   // relación con agentes: sigue siendo 0..100 (aparte de la reputación)
@@ -972,13 +981,16 @@ function closeDeal(){
   G.hagglePend=false;
   G.ops.push({co:st.cargo.co,price:st.price,costo:st.cargo.costo,risk,payDay,costDay,costPaid:false,agentId:st.cargo.agentId});
   const gan=st.price-st.cargo.costo;
+  // memoria del cliente: cuántos tratos y cuánta ganancia acumulada le hiciste
+  const h=G.clientHist[st.cargo.co]||(G.clientHist[st.cargo.co]={deals:0,profit:0});
+  h.deals++; h.profit+=gan;
   if(st.tookLoss){
     // Cerraste a pérdida a propósito (apuesta por el cliente): cartel distinto, sin confeti.
     log("🤝 Cerraste "+st.cargo.co+" a PÉRDIDA ("+money(gan)+") apostando a la relación.");
     bigToast("🤝 Invertiste en el cliente<br>"+money(gan)+" ahora, por su confianza");
   }else{
     log("✅ Cerraste "+st.cargo.co+" a "+money(st.price)+" (margen "+Math.round(m*100)+"%). Cobras en "+st.term+"d.");
-    confetti(); bigToast("🎉 ¡Trato cerrado!<br>Ganás "+money(gan));
+    confetti(); sndDeal(); bigToast("🎉 ¡Trato cerrado!<br>Ganás "+money(gan));
   }
   renderAll();
 }
@@ -1149,7 +1161,7 @@ function resolveOps(){
       // El cliente NO paga: lo peor que te puede pasar. Golpe fuerte a la fama.
       G.problems++;addRep(-10);
       log("🟥 "+o.co+" NO PAGÓ. Perdiste "+money(o.costo)+". (reputación -10)");
-      floatNum("−"+money(o.costo),"var(--bad)"); popCaja();
+      floatNum("−"+money(o.costo),"var(--bad)"); popCaja(); sndBad();
     }else if(Math.random()<o.risk.ops){
       // PROBLEMA OPERATIVO: no se resuelve solo. Se encola para que el jugador DECIDA.
       const ex=Math.round((o.price-o.costo)*rnd(0.5,1.4));
@@ -1160,7 +1172,7 @@ function resolveOps(){
       G.cash+=o.price;addRep(3);
       if(o.agentId)G.rel[o.agentId]=Math.min(100,G.rel[o.agentId]+3);
       log("💰 "+o.co+" pagó "+money(o.price)+". Entrega a tiempo. (reputación +3)");
-      floatNum("+"+money(o.price),"var(--good)"); popCaja();
+      floatNum("+"+money(o.price),"var(--good)"); popCaja(); sndCash();
     }
   }
 }
@@ -1173,8 +1185,14 @@ function addRep(delta){
 function tick(d){
   G.day+=d;resolveOps();
   while(G.day>=G.nextMonthly){
+    const cashAntes=G.cash;
     G.cash-=G.monthly;
     log("Gastos del mes: -"+money(G.monthly));
+    // Resumen del mes: cómo cambió tu caja desde el último cierre (toast no bloqueante).
+    const variacion=G.cash-G.monthStartCash;
+    const signo=variacion>=0?"+":"";
+    bigToast("📅 Cerró el mes<br>Tu caja: "+signo+money(variacion)+" → "+money(G.cash));
+    G.monthStartCash=G.cash;
     G.monthly=Math.round(G.monthly*1.04);
     G.nextMonthly+=30;
   }
@@ -1253,24 +1271,32 @@ function popCaja(){
   if(el){ el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
 }
 
-// ── Sonido "clin!" de premio (Web Audio, sin archivos) ─────────────────
-let _audioCtx=null;
-function playClin(){
+// ── Sonidos (Web Audio, sin archivos) + toggle de silencio ─────────────
+let _audioCtx=null, soundOn=true;
+function toggleSound(){ soundOn=!soundOn; renderHud(); if(soundOn) tone(660,0.1,"triangle"); }
+// Reproduce una o varias notas. notes = [[frecuencia, retraseg], ...]
+function playNotes(notes,type="sine",vol=0.22,dur=0.5){
+  if(!soundOn) return;
   try{
     _audioCtx=_audioCtx||new (window.AudioContext||window.webkitAudioContext)();
     const ctx=_audioCtx, now=ctx.currentTime;
-    // dos notas ascendentes tipo campanita
-    [[880,0],[1318.5,0.12]].forEach(([f,t])=>{
+    notes.forEach(([f,t])=>{
       const o=ctx.createOscillator(),g=ctx.createGain();
-      o.type="sine";o.frequency.value=f;
-      o.connect(g);g.connect(ctx.destination);
+      o.type=type;o.frequency.value=f;o.connect(g);g.connect(ctx.destination);
       g.gain.setValueAtTime(0.0001,now+t);
-      g.gain.exponentialRampToValueAtTime(0.25,now+t+0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001,now+t+0.5);
-      o.start(now+t);o.stop(now+t+0.55);
+      g.gain.exponentialRampToValueAtTime(vol,now+t+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,now+t+dur);
+      o.start(now+t);o.stop(now+t+dur+0.05);
     });
-  }catch(e){/* si el navegador bloquea audio, no pasa nada */}
+  }catch(e){}
 }
+function tone(f,dur,type){ playNotes([[f,0]],type||"sine",0.18,dur||0.15); }
+function playClin(){ playNotes([[880,0],[1318.5,0.12]],"sine",0.25,0.5); }      // premio
+function sndDeal(){ playNotes([[523,0],[784,0.09],[1046,0.18]],"triangle",0.22,0.4); } // cerrar trato
+function sndCash(){ playNotes([[1046,0],[1568,0.07]],"sine",0.2,0.3); }          // cobrar (ka-ching)
+function sndBad(){ playNotes([[220,0],[160,0.12]],"sawtooth",0.18,0.35); }       // perder/fallo
+function sndSwoosh(){ tone(420,0.08,"sine"); }                                   // cambiar panel
+function sndTap(){ tone(330,0.05,"square"); }                                    // toque suave
 
 // ── Premio de táctica: cada PRIZE_EVERY cargas cerradas ────────────────
 // La mitad de las veces te deja elegir; la otra mitad es aleatoria (sorpresa).
@@ -1382,6 +1408,7 @@ const panelsEl=$("panels");
 
 function goPanel(n){
   if(n<0||n>2)return;
+  if(n!==activePanel) sndSwoosh();
   activePanel=n;
   updatePanelsPosition();
   updateNavDots();
@@ -1485,6 +1512,8 @@ function renderGuide(){
 
   const stepName=["Conseguir","Cotizar","Cerrar"];
   const stepIcon=["🚚","💲","🤝"];
+  // Barra de objetivo: progreso de tu caja hacia la meta.
+  const prog=clamp01(G.cash/G.goal), ganaste=G.cash>=G.goal;
   g.innerHTML=`
     <div class="guide-steps">
       ${[0,1,2].map(i=>`
@@ -1492,37 +1521,52 @@ function renderGuide(){
           <div class="gs-dot">${i<step?'✓':stepIcon[i]}</div>${stepName[i]}
         </div>`).join("")}
     </div>
-    <div class="guide-msg">${msg}</div>`;
+    <div class="guide-msg">${msg}</div>
+    <div class="goal-wrap" title="Tu objetivo">
+      <div class="goal-lbl"><span>🎯 Meta: ${ganaste?'¡LOGRADA! 🏆':'llegá a '+money(G.goal)+' de caja'}</span><span>${shortMoney(G.cash)} / ${shortMoney(G.goal)}</span></div>
+      <div class="goal-bar"><i style="width:${Math.round(prog*100)}%;background:${ganaste?'var(--good)':'var(--hub)'}"></i></div>
+    </div>`;
 }
 
 // ═══════════════════════════════════════════════════════════════════════
 //  HUD
 // ═══════════════════════════════════════════════════════════════════════
 
+// "Cómo venís": estado general según caja vs gastos del mes y reputación.
+function estadoGeneral(){
+  if(G.cash<G.monthly*0.5 || G.rep<=-40) return {e:"😰",t:"En problemas",c:"var(--bad)"};
+  if(G.cash<G.monthly || G.rep<0)        return {e:"😐",t:"Ajustado",c:"var(--warn)"};
+  return {e:"😀",t:"Vas bien",c:"var(--good)"};
+}
 function renderHud(){
   if(G.over){$("hud").innerHTML="";$("hud").style.display="none";return;}
   $("hud").style.display="flex";
   const falta=Math.max(0,G.nextMonthly-G.day);
   const alert=(G.cash<G.monthly&&falta<=6);
+  const est=estadoGeneral();
   $("hud").innerHTML=`
-    <div class="hud-cell ${alert?'alert':''}">
-      <div class="hud-lbl">Caja</div>
+    <div class="hud-cell ${alert?'alert':''}" title="Tu plata disponible">
+      <div class="hud-lbl">💵 Caja</div>
       <div class="hud-val" style="color:${G.cash<500?'var(--bad)':G.cash<2000?'var(--warn)':'var(--good)'}">${shortMoney(G.cash)}</div>
     </div>
-    <div class="hud-cell ${G.rep<=-70?'alert':''}">
-      <div class="hud-lbl">Reput.</div>
+    <div class="hud-cell ${G.rep<=-70?'alert':''}" title="Tu fama (-100 a +100)">
+      <div class="hud-lbl">⭐ Fama</div>
       <div class="hud-val" style="color:${G.rep<=-40?'var(--bad)':G.rep<0?'var(--warn)':G.rep>=40?'var(--good)':'var(--txt)'}">${G.rep>0?'+':''}${G.rep}</div>
     </div>
-    <div class="hud-cell">
-      <div class="hud-lbl">Dia</div>
-      <div class="hud-val">${G.day}</div>
+    <div class="hud-cell" title="Cómo venís en general">
+      <div class="hud-lbl">¿Cómo vas?</div>
+      <div class="hud-val" style="font-size:13px;color:${est.c}">${est.e} ${est.t}</div>
     </div>
-    <div class="hud-cell click" onclick="showOpsModal()">
-      <div class="hud-lbl">Ops</div>
+    <div class="hud-cell click" onclick="showOpsModal()" title="Operaciones en curso">
+      <div class="hud-lbl">📋 Envíos</div>
       <div class="hud-val">${G.ops.length}/${G.capacity}</div>
       ${G.ops.length>0?'<span class="hud-badge">'+G.ops.length+'</span>':''}
     </div>
-    <div class="hud-cell click" onclick="showFeedbackModal(true)">
+    <div class="hud-cell click" onclick="toggleSound()" title="Activar/silenciar sonido">
+      <div class="hud-lbl">${soundOn?'🔊':'🔇'}</div>
+      <div class="hud-val" style="font-size:11px">${soundOn?'Son.':'Mute'}</div>
+    </div>
+    <div class="hud-cell click" onclick="showFeedbackModal(true)" title="Dejá tu opinión">
       <div class="hud-lbl">💬</div>
       <div class="hud-val" style="font-size:11px">Opinar</div>
     </div>
@@ -1688,18 +1732,22 @@ function emptyState(msg){
 
 function renderClienteConsulta(){
   const c=G.st.cargo,p=G.st.persona;
+  const h=G.clientHist[c.co];                 // historial real con esta empresa
+  const conocido=h&&h.deals>0;
   return `<div class="card">
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
       <span class="badge badge-info">Nueva consulta</span>
       ${c.urgente?'<span class="badge badge-bad">Urgente</span>':''}
+      ${conocido?'<span class="badge badge-good">⭐ Cliente que vuelve</span>':''}
     </div>
     <div class="card-header">
       <div class="card-icon">🏢</div>
       <div>
         <div class="card-title">${c.co}</div>
-        <div class="card-subtitle">${G.rep>55?'Cliente conocido':'Cliente nuevo'} · ${c.op}</div>
+        <div class="card-subtitle">${conocido?'Ya hiciste '+h.deals+' trato(s) con ellos':'Cliente nuevo'} · ${c.op}</div>
       </div>
     </div>
+    ${conocido?`<div class="note" style="background:var(--good-bg);border:1px solid rgba(74,222,128,0.2)"><span class="note-icon">🤝</span><span>¡Volvió <b>${c.co}</b>! Le generaste ${money(h.profit)} hasta ahora. Cuidalo, los clientes fieles valen oro.</span></div>`:""}
     <div class="info-row">
       <div class="info-icon">📦</div>
       <div class="info-content"><div class="info-label">Carga</div><div class="info-value">${c.desc} · ${c.merc}</div></div>
