@@ -2458,7 +2458,7 @@ function submitFeedback(){
 
   track('feedback_submit',{rating,again});
   flushEvents();
-  const GOOGLE_SCRIPT_URL='https://script.google.com/macros/s/AKfycbyOMG6IUEs3Z5gBkU-o0oeUTqXRci83slZjvAWEvf1axCzqh-6jLIMfwIoVeYNkh8kX/exec';
+  const GOOGLE_SCRIPT_URL='https://script.google.com/macros/s/AKfycbwzbroCokgpRllaM_z6JLsAZvB5R5s2d-nIO_D8SbreGnKcCmwXUX2uLQivtlp954ac/exec';
   fetch(GOOGLE_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({sid:SESSION_ID,name,rating,again,comments,stats,date:new Date().toLocaleString()})});
 
   alert('¡Gracias por tu feedback! Se guardo correctamente.');
