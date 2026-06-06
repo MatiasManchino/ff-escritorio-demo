@@ -649,7 +649,7 @@ const shortMoney=n=>{
 // ═══════════════════════════════════════════════════════════════════════
 
 const PERSONAS={
-  rata:     {key:"rata",nombre:"El Rata",emoji:"😒",priceSens:90,urgency:20,serviceVal:10,maxRounds:3,concession:0.06,angerThreshold:6,targetMult:1.05,prefTerm:60,hints:["Solo le importa el numero.","De los que lloran el precio."]},
+  rata:     {key:"rata",nombre:"El Ahorrador",emoji:"😒",priceSens:90,urgency:20,serviceVal:10,maxRounds:3,concession:0.06,angerThreshold:6,targetMult:1.05,prefTerm:60,hints:["Solo le importa el numero.","De los que lloran el precio."]},
   apurado:  {key:"apurado",nombre:"El Apurado",emoji:"⏰",priceSens:30,urgency:90,serviceVal:60,maxRounds:2,concession:0.15,angerThreshold:5,targetMult:1.30,prefTerm:0,hints:["Tiene mucha urgencia.","Cada dia de demora le cuesta plata."]},
   confiable:{key:"confiable",nombre:"El Confiable",emoji:"🤝",priceSens:40,urgency:30,serviceVal:75,maxRounds:3,concession:0.10,angerThreshold:6,targetMult:1.18,prefTerm:30,hints:["Parece un cliente serio.","Valora el buen servicio."]},
 };
@@ -846,6 +846,14 @@ function sendQuote(){
   }
   const floor=st.cargo.costo*1.10,target=st.cargo.costo*st.persona.targetMult;
   st.counter=null;st.counterTerm=null;
+  // ¿El cliente exige tan poco que te dejaría a PÉRDIDA? (su target real, por debajo del piso)
+  // Pasa con el "Ahorrador" duro y en última ronda. Ahí abrimos la DECISIÓN a pérdida.
+  const lowTarget=Math.round(st.cargo.costo*st.persona.targetMult);
+  if(lowTarget<floor && st.round>=2 && st.persona.priceSens>=70){
+    const lossPrice=Math.max(lowTarget, Math.round(st.cargo.costo*0.93)); // hasta ~-7%
+    st.clientMsg="“Es lo único que puedo pagar: "+money(lossPrice)+". Tomalo o lo dejamos.”";
+    revealHint(); renderAll(); showLossModal(lossPrice); return;
+  }
   if(st.price>target){
     const cp=Math.round(Math.max(floor,target,st.price*(1-st.persona.concession)));
     if(cp<st.price&&cp<=st.cargo.clientMaxViable)st.counter=cp;
@@ -915,7 +923,7 @@ function askTarget(){
   const st=G.st; if(st.finished||st.targetAsked) return;
   st.targetAsked=true;
   const p=st.persona;
-  // Probabilidad de que afloje el número: el Confiable un poco más, el Rata casi nunca.
+  // Probabilidad de que afloje el número: el Confiable un poco más, el Ahorrador casi nunca.
   const tellChance = p.key==="confiable"?0.35 : p.key==="rata"?0.12 : 0.22;
   if(Math.random()<tellChance){
     // Te da una idea (un poco por debajo de su techo real, para que igual tengas que ajustar).
@@ -1308,6 +1316,13 @@ function words(acc,risk,m){
   const rk=risk<0.2?["🛡️","Riesgo bajo"]:risk<0.4?["⚠️","Riesgo medio"]:["🚨","Riesgo alto"];
   const rent=m<0.12?["📉","Margen al limite"]:m<0.25?["📈","Margen aceptable"]:["💎","Margen alto"];
   return {comp,rk,rent};
+}
+// Potencial del cliente (versión simple, sin números): para decidir si vale la pena
+// comerse una pérdida con tal de ganarlo. Sale de su personalidad.
+function clientePotencial(p){
+  if(p.key==="confiable") return {ic:"🔥",txt:"Cliente estratégico",desc:"Paga bien y es fiel. Si lo ganás, vuelve seguido con buenos tratos. Vale la pena cuidarlo."};
+  if(p.key==="apurado")   return {ic:"⭐",txt:"Buen cliente",desc:"Tiene urgencias seguido y paga por el servicio. Puede convertirse en cliente recurrente."};
+  return {ic:"⚠️",txt:"Cliente ocasional",desc:"Mueve poca carga y pelea cada peso. Difícil que justifique perder plata por él."};
 }
 function advice(st,acc,risk,m){
   if(st.price>st.cargo.clientMaxViable)return "A este precio no le cierra el negocio. Baja o pasa.";
@@ -2103,6 +2118,48 @@ function showSinCapacidad(){
     <button class="modal-close ghost" onclick="this.closest('.modal').remove();showOpsModal();">📋 Ver mis operaciones</button>
   </div>`;
   document.body.appendChild(d);
+}
+
+// ── DECISIÓN A PÉRDIDA ─────────────────────────────────────────────────
+// Aparece cuando el cliente solo cerraría a un precio que te deja por debajo del
+// 10% (a pérdida). El jugador decide con una pista del potencial del cliente.
+function showLossModal(lossPrice){
+  if(document.getElementById('lossModal')) return;
+  const st=G.st, costo=st.cargo.costo;
+  const pot=clientePotencial(st.persona);
+  const margenPct=Math.round((lossPrice-costo)/costo*100);
+  const cajaBaja = G.cash < G.monthly;
+  const d=document.createElement('div');d.className='modal';d.id='lossModal';
+  d.innerHTML=`<div class="modal-box">
+    <div class="modal-title" style="text-align:center">🤔 ¿Vale la pena?</div>
+    <p style="text-align:center;color:var(--txt2);font-size:13px;margin-bottom:8px">${st.cargo.co} solo cierra a <b>${money(lossPrice)}</b>, que te deja a <b style="color:var(--bad)">pérdida (${margenPct}%)</b>.</p>
+    <div class="note" style="background:var(--panel2)"><span class="note-icon" style="font-size:20px">${pot.ic}</span><span><b>${pot.txt}.</b> ${pot.desc}</span></div>
+    ${cajaBaja?`<div class="note warn"><span class="note-icon">💰</span><span>Tu caja está ajustada: comerte una pérdida ahora es arriesgado.</span></div>`:""}
+    <div class="hub-action" onclick="acceptLoss(${lossPrice})" style="border-color:var(--bad)">
+      <span class="ha-icon">💸</span>
+      <div class="ha-content"><div class="ha-title" style="color:var(--bad)">Aceptar a pérdida (${money(lossPrice-costo)})</div>
+        <div class="ha-desc">Cerrás perdiendo plata, pero ganás al cliente. Si es bueno, vuelve con mejores tratos.</div></div>
+    </div>
+    <div class="hub-action" onclick="document.getElementById('lossModal').remove()" style="border-color:var(--warn)">
+      <span class="ha-icon">🤝</span>
+      <div class="ha-content"><div class="ha-title" style="color:var(--warn)">Seguir negociando</div>
+        <div class="ha-desc">Volvés a la cotización. Arriesgás que el cliente se vaya.</div></div>
+    </div>
+    <div class="hub-action" onclick="document.getElementById('lossModal').remove();rejectClient()">
+      <span class="ha-icon">🙇</span>
+      <div class="ha-content"><div class="ha-title">Abandonar la carga</div>
+        <div class="ha-desc">No gastás más tiempo ni plata. A veces es lo más sabio.</div></div>
+    </div>
+  </div>`;
+  document.body.appendChild(d);
+}
+function acceptLoss(lossPrice){
+  document.getElementById('lossModal')?.remove();
+  G.st.price=lossPrice;
+  // Recompensa por bancar al cliente: si es bueno, salta su satisfacción (y vuelve mejor).
+  if(G.st.persona.key!=="rata") G.st.satisfaction=Math.min(100,G.st.satisfaction+25);
+  G.st.tookLoss=true;
+  closeDeal();
 }
 
 function showRulesModal(){
