@@ -541,6 +541,11 @@
   .result-card .rc-emoji{font-size:26px}
   .result-card .rc-title{font-weight:800;font-size:14px}
   .result-card .rc-detail{font-size:12px;color:var(--muted)}
+  /* tooltip contextual de primera vez */
+  .ctx-tip{position:fixed;left:12px;right:12px;bottom:150px;z-index:306;max-width:440px;margin:0 auto;
+    background:var(--panel);border:2px solid var(--accent);border-radius:14px;padding:13px 15px;box-shadow:var(--shadow-lg);animation:slideUp .25s ease}
+  .ctx-tip .ct-body{font-size:13.5px;color:var(--txt);line-height:1.5}
+  .ctx-tip .ct-ok{margin-top:10px;width:100%;background:var(--accent);color:#1a0f08;border:none;border-radius:10px;padding:9px;font-weight:700;cursor:pointer}
   .guide-spacer{height:104px;flex-shrink:0}     /* deja lugar para la guía + barra de meta */
 
   /* Resalta el botón/elemento que conviene tocar ahora */
@@ -1254,6 +1259,17 @@ function revealHint(){
 }
 function flash(t){log("▶ "+t);}
 
+// ── Tooltips contextuales de "primera vez" ─────────────────────────────
+// Muestra un globito UNA sola vez por concepto (id). Aparece centrado abajo.
+function tip(id,texto){
+  if(G.seenTips[id]) return;
+  G.seenTips[id]=true;
+  document.getElementById('ctxTip')?.remove();
+  const d=document.createElement('div');d.className='ctx-tip';d.id='ctxTip';
+  d.innerHTML=`<div class="ct-body">💡 ${texto}</div><button class="ct-ok" onclick="this.closest('.ctx-tip').remove()">Ok, entendí</button>`;
+  document.body.appendChild(d);
+}
+
 // ── JUICE: efectos de vida ─────────────────────────────────────────────
 // Confeti de colores cayendo (celebración).
 function confetti(){
@@ -1437,6 +1453,11 @@ function goPanel(n){
   activePanel=n;
   updatePanelsPosition();
   updateNavDots();
+  // Tooltips de primera vez según la pantalla a la que entrás.
+  if(!G.over){
+    if(n===0) setTimeout(()=>tip("agentes","Estos son los transportistas. Elegí uno y regateá su tarifa: cada peso que le bajes es ganancia tuya. El más barato suele fallar más, ojo."),350);
+    if(n===2 && G.st && G.st.cargo.costo!=null) setTimeout(()=>tip("cotizar","Ahora ponele TU precio al cliente con la barra. Más a la derecha ganás más, pero es más difícil que acepte. Mirá la barra de «chance de que acepte»."),350);
+  }
 }
 
 function updatePanelsPosition(){
@@ -2148,7 +2169,8 @@ function showConsultaModal(){
         <div class="card-subtitle">${G.rep>55?'Cliente conocido':'Cliente nuevo'} · ${c.op}</div></div>
     </div>
     <div class="story">«Hola, ${c.co} necesita mover ${c.desc} de ${c.merc}. Ruta ${c.ruta}. ${c.urgente?'Es URGENTE. ':''}¿Me pasás una cotización?»</div>
-    <button class="modal-close" onclick="this.closest('.modal').remove();goPanel(2)">📝 Atender y cotizar →</button>
+    <div class="note"><span class="note-icon">🚢</span><span>Primero necesitás saber cuánto te sale: andá a los <b>transportistas</b> a conseguir la tarifa.</span></div>
+    <button class="modal-close" onclick="this.closest('.modal').remove();goPanel(0)">🚢 Buscar transportista →</button>
     <button class="modal-close ghost" onclick="this.closest('.modal').remove()">Ver primero el escritorio</button>
   </div>`;
   document.body.appendChild(d);
