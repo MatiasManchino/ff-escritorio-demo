@@ -1691,14 +1691,20 @@ function goPanel(n){
 
 function isPC(){ return window.matchMedia("(min-width:980px)").matches; }
 function updatePanelsPosition(){
-  panelsEl.style.setProperty("--ap", activePanel);
-  panelsEl.style.transform="";   // que el CSS (var --ap) calcule la posición (mobile y PC)
-  // Carrusel PC: marcar el panel activo y los dos costados (difuminados).
+  // Marcar activo / costados (lo usa el carrusel de PC; en mobile es inofensivo).
   ["panel-agentes","panel-hub","panel-clientes"].forEach((id,i)=>{
     const p=document.getElementById(id); if(!p)return;
     p.classList.toggle("is-active", i===activePanel);
     p.classList.toggle("is-side", i!==activePanel);
   });
+  if(isPC()){
+    // PC: el carrusel se posiciona por variable CSS (activo centrado, costados difuminados).
+    panelsEl.style.setProperty("--ap", String(activePanel));
+    panelsEl.style.transform="";
+  } else {
+    // MOBILE: igual que siempre — transform directo (swipe de un panel a la vez).
+    panelsEl.style.transform="translateX(-"+(activePanel*33.333)+"%)";
+  }
 }
 
 function updateNavDots(){
@@ -2058,7 +2064,7 @@ function renderClienteConsulta(){
     ${G.st.flavor?`<div class="note"><span class="note-icon">📢</span><span>${G.st.flavor}</span></div>`:""}
     <div class="note" style="background:var(--violet-bg);border:1px solid rgba(167,139,250,0.2)">
       <span class="note-icon" style="font-size:16px">🚢</span>
-      <span><b>Falta la tarifa.</b> Desliza → hacia <b>Agentes</b> para conseguir tu costo.</span>
+      <span><b>Falta la tarifa.</b><b>Agentes</b> para conseguir tu costo.</span>
     </div>
     <div class="btn-row">
       <button class="btn btn-violet nudge" onclick="goPanel(0)">🚢 Buscar tarifa →</button>
@@ -2262,7 +2268,7 @@ function renderAgenteLista(){
     ${c.costo!=null?`
       <div class="note good" style="margin-top:10px">
         <span class="note-icon">✅</span>
-        <span>Tarifa reservada: <b>${money(c.costo)}</b> con ${agentById(c.agentId).nombre}. Desliza → para cotizar al cliente.</span>
+        <span>Tarifa reservada: <b>${money(c.costo)}</b> con ${agentById(c.agentId).nombre}</span>
       </div>
       <div class="btn-row"><button class="btn btn-primary nudge" onclick="goPanel(2)">🏢 Ir a Clientes →</button></div>
     `:''}
