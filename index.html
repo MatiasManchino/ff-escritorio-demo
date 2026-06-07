@@ -824,7 +824,8 @@ function newGame(){
   AGENTES.forEach(a=>G.rel[a.id]=50);   // relación con agentes: sigue siendo 0..100 (aparte de la reputación)
   feedbackShown=false;
   if(feedbackTimeout) clearTimeout(feedbackTimeout);
-  feedbackTimeout=setTimeout(()=>{ if(!G.over&&!feedbackShown) showFeedbackModal(); },120000);  // opinión a los 2 min
+  // El feedback NO se pide durante el juego (interrumpía al novato concentrado).
+  // Se ofrece solo al terminar la partida (game over / victoria) y desde el botón "Opinar".
   log("Arrancas solo con "+money(G.cash)+". Gastos del mes: "+money(G.monthly)+".");
   track('game_start',{});
   newClient();
@@ -1441,6 +1442,8 @@ function gameOver(){
   flushEvents(true);
   if(feedbackTimeout)clearTimeout(feedbackTimeout);
   renderAll();
+  // Recién al terminar la partida ofrecemos el feedback (no interrumpe el juego).
+  if(!feedbackShown) setTimeout(()=>{ if(!feedbackShown) showFeedbackModal(); }, 1500);
 }
 
 // ═══════════════════════════════════════════════════════════════════════
