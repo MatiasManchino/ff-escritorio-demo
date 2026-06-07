@@ -196,10 +196,6 @@
     content:'';position:absolute;top:0;left:0;right:0;height:3px;
     background:var(--accent);
   }
-  .quote-big{
-    font-size:32px;font-weight:800;letter-spacing:-1px;color:var(--accent);
-    margin:4px 0;
-  }
   .range-wrap{margin:10px 0}
   input[type=range]{
     width:100%;height:8px;border-radius:4px;
@@ -313,13 +309,6 @@
     padding:10px 12px;margin:8px 0;font-size:12px;color:var(--muted);
   }
   .note .note-icon{flex-shrink:0;font-size:14px;margin-top:1px}
-
-  /* ===== ANALYSIS ===== */
-  .analysis{display:flex;flex-direction:column;gap:6px;margin:10px 0}
-  .an-row{display:flex;align-items:center;gap:8px;font-size:13px}
-  .an-emoji{font-size:16px;flex-shrink:0;width:24px;text-align:center}
-  .an-label{font-weight:600}
-  .an-detail{color:var(--muted);font-size:12px}
 
   /* ===== DUAL STAT BOXES ===== */
   .duo{display:flex;gap:8px;margin:10px 0}
@@ -1600,7 +1589,6 @@ function sndDeal(){ playNotes([[523,0],[784,0.09],[1046,0.18]],"triangle",0.22,0
 function sndCash(){ playNotes([[1046,0],[1568,0.07]],"sine",0.2,0.3); }          // cobrar (ka-ching)
 function sndBad(){ playNotes([[220,0],[160,0.12]],"sawtooth",0.18,0.35); }       // perder/fallo
 function sndSwoosh(){ tone(420,0.08,"sine"); }                                   // cambiar panel
-function sndTap(){ tone(330,0.05,"square"); }                                    // toque suave
 
 // ── Premio de táctica: cada PRIZE_EVERY cargas cerradas ────────────────
 // La mitad de las veces te deja elegir; la otra mitad es aleatoria (sorpresa).
@@ -1670,12 +1658,6 @@ function log(t){
     d.style.animation="toastOut .4s ease forwards";
     setTimeout(()=>d.remove(),400);
   },4500);
-}
-function words(acc,risk,m){
-  const comp=acc>0.6?["😀","Buena posibilidad"]:acc>0.4?["😐","Posible, ajustar"]:["😟","Dificil de cerrar"];
-  const rk=risk<0.2?["🛡️","Riesgo bajo"]:risk<0.4?["⚠️","Riesgo medio"]:["🚨","Riesgo alto"];
-  const rent=m<0.12?["📉","Margen al limite"]:m<0.25?["📈","Margen aceptable"]:["💎","Margen alto"];
-  return {comp,rk,rent};
 }
 // Potencial del cliente (versión simple, sin números): para decidir si vale la pena
 // comerse una pérdida con tal de ganarlo. Sale de su personalidad.
@@ -1910,7 +1892,6 @@ function renderHud(){
 function renderHub(){
   const c=G.st?G.st.cargo:null;
   const hasCost=c&&c.costo!=null;
-  const needAgent=c&&c.costo==null&&!G.st.finished;
 
   // Status card
   let statusHtml="";
@@ -2146,8 +2127,6 @@ function renderClienteCotizar(){
   const m=(st.price-costo)/costo;
   const acc=acceptance();
   const risk=estimateRisk(st);
-  const w=words(acc,risk.total,m);
-  const ag=agentById(c.agentId);
 
   return `<div class="card">
     <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
