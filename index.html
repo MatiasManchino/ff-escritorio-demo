@@ -2098,23 +2098,21 @@ function renderClienteCotizar(){
     </div>
 
     <div class="quote-card">
-      <div class="info-label">Precio de venta</div>
-      <div class="quote-big">${money(st.price)}</div>
-      <div class="range-wrap">
-        <input type="range" min="${floor}" max="${cap}" value="${st.price}" step="25"
-          oninput="G.st.price=+this.value;renderAll()">
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:8px">
-        <span>Piso ${money(floor)}</span>
-        <span style="color:${m<=0.12?'var(--warn)':'var(--good)'}">Margen ${Math.round(m*100)}%</span>
-        <span>Max ${money(cap)}</span>
-      </div>
-      <div class="summary" style="margin:0">
+      <div class="summary" style="margin:0 0 12px">
         <div class="summary-col"><span class="summary-label">Cobrás</span><span class="summary-value" style="color:var(--good)">${money(st.price)}</span></div>
         <div class="summary-op">-</div>
         <div class="summary-col"><span class="summary-label">Pagás</span><span class="summary-value" style="color:var(--bad)">${money(costo)}</span></div>
         <div class="summary-op">=</div>
         <div class="summary-col"><span class="summary-label">Ganás</span><span class="summary-value" style="color:var(--accent)">${money(st.price-costo)}</span></div>
+      </div>
+      <div class="range-wrap">
+        <input type="range" min="${floor}" max="${cap}" value="${st.price}" step="25"
+          oninput="G.st.price=+this.value;renderAll()">
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted)">
+        <span>Piso ${money(floor)}</span>
+        <span style="color:${m<=0.12?'var(--warn)':'var(--good)'}">Margen ${Math.round(m*100)}%</span>
+        <span>Max ${money(cap)}</span>
       </div>
     </div>
 
