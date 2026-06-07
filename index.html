@@ -859,6 +859,7 @@ function newGame(){
     goal:20000,                 // meta de caja (barra de objetivo)
     won:false,                  // ya alcanzaste la meta al menos una vez (modo libre)
     clientNum:0,                // cuántos clientes llegaron (para la rampa de dificultad)
+    ledger:[],                  // historial de movimientos de caja (cobros/pagos)
     clientHist:{},              // historial por empresa: {deals, profit}
     monthStartCash:6000,        // para el resumen de fin de mes
     seenTips:{}                 // tooltips contextuales ya mostrados
@@ -1377,10 +1378,11 @@ function resolveOps(){
   const due=G.ops.filter(o=>G.day>=o.payDay);
   G.ops=G.ops.filter(o=>G.day<o.payDay);
   for(const o of due){
-    if(!o.costPaid){o.costPaid=true;G.cash-=o.costo;}
+    if(!o.costPaid){o.costPaid=true;G.cash-=o.costo;addLedger("Pago a agente · "+o.co,-o.costo);}
     if(Math.random()<o.risk.pay){
       // El cliente NO paga: lo peor que te puede pasar. Golpe fuerte a la fama.
       G.problems++;addRep(-10);
+      addLedger("⚠️ "+o.co+" NO pagó",0);
       log("🟥 "+o.co+" NO PAGÓ. Perdiste "+money(o.costo)+". (reputación -10)");
       floatNum("−"+money(o.costo),"var(--bad)"); popCaja(); sndBad();
       opResultCard("🟥",o.co+" no pagó","Perdiste "+money(o.costo)+" · fama -10","var(--bad)");
@@ -1393,7 +1395,7 @@ function resolveOps(){
       log("🟧 Problema en "+o.co+": hay que decidir cómo resolverlo.");
     }else{
       // Entrega a tiempo y sin drama: suma reputación de verdad.
-      G.cash+=o.price;addRep(3);
+      G.cash+=o.price;addRep(3);addLedger("Cobro · "+o.co,o.price);
       if(o.agentId)G.rel[o.agentId]=Math.min(100,G.rel[o.agentId]+3);
       log("💰 "+o.co+" pagó "+money(o.price)+". Entrega a tiempo. (reputación +3)");
       floatNum("+"+money(o.price),"var(--good)"); popCaja(); sndCash();
@@ -1402,6 +1404,11 @@ function resolveOps(){
   }
 }
 
+// Registra un movimiento de caja para el historial del Escritorio.
+function addLedger(concepto, monto){
+  G.ledger.push({day:G.day, concepto, monto:Math.round(monto)});
+  if(G.ledger.length>60) G.ledger.shift();
+}
 // Cambia la reputación dentro del rango -100..100. Si toca -100, se pierde por mala fama.
 function addRep(delta){
   G.rep=clamp(G.rep+delta,-100,100);
@@ -1412,6 +1419,7 @@ function tick(d){
   while(G.day>=G.nextMonthly){
     const cashAntes=G.cash;
     G.cash-=G.monthly;
+    addLedger("Gastos del mes",-G.monthly);
     log("Gastos del mes: -"+money(G.monthly));
     // Resumen del mes: cómo cambió tu caja desde el último cierre (toast no bloqueante).
     const variacion=G.cash-G.monthStartCash;
@@ -1928,16 +1936,6 @@ function renderHub(){
           ${c.urgente?'<span class="badge badge-bad">⚡ Urgente</span>':''}
         </div>
         ${G.st.flavor?`<div class="note"><span class="note-icon">${G.st.flavor.slice(0,2)}</span><span>${G.st.flavor.slice(2)}</span></div>`:""}
-        <div style="display:flex;gap:8px;margin-top:12px">
-          <div class="duo-box" style="flex:1">
-            <div class="duo-label">Tu costo</div>
-            <div class="duo-value" style="color:${hasCost?'var(--info)':'var(--muted)'};font-size:18px">${hasCost?money(c.costo):'???'}</div>
-          </div>
-          <div class="duo-box" style="flex:1">
-            <div class="duo-label">Tu precio</div>
-            <div class="duo-value" style="color:${hasCost?'var(--accent)':'var(--muted)'};font-size:18px">${hasCost&&G.st.price?money(G.st.price):'???'}</div>
-          </div>
-        </div>
       </div>`;
   }
 
@@ -1992,6 +1990,33 @@ function renderHub(){
     </div>
   `;
 
+  // Pagos: por cobrar (clientes) y por pagar (agentes) de las operaciones en curso.
+  const porCobrar=G.ops.reduce((s,o)=>s+o.price,0);
+  const porPagar =G.ops.filter(o=>!o.costPaid).reduce((s,o)=>s+o.costo,0);
+  const pagosHtml=`
+    <div class="section-lbl">Pagos</div>
+    <div class="score-grid" style="grid-template-columns:1fr 1fr">
+      <div class="score-cell">
+        <div class="score-label">Por cobrar</div>
+        <div class="score-value" style="color:var(--good)">${money(porCobrar)}</div>
+        <div class="score-label" style="margin-top:2px">${G.ops.length} envío(s)</div>
+      </div>
+      <div class="score-cell">
+        <div class="score-label">Por pagar a agentes</div>
+        <div class="score-value" style="color:var(--bad)">${money(porPagar)}</div>
+        <div class="score-label" style="margin-top:2px">${G.ops.filter(o=>!o.costPaid).length} pendiente(s)</div>
+      </div>
+    </div>
+    <div class="hub-action" onclick="showLedgerModal()" style="margin-top:8px">
+      <span class="ha-icon">🧾</span>
+      <div class="ha-content">
+        <div class="ha-title">Historial y pagos pendientes</div>
+        <div class="ha-desc">Ver cobros, pagos y movimientos de caja</div>
+      </div>
+      <span class="ha-arrow">→</span>
+    </div>
+  `;
+
   // Gestiones
   const gestionHtml=`
     <div class="section-lbl">Gestion</div>
@@ -2013,7 +2038,50 @@ function renderHub(){
     </div>
   `;
 
-  $("hub-content").innerHTML=statusHtml+actionsHtml+statsHtml+gestionHtml;
+  const showPagos = !G.over && (G.ops.length>0 || G.ledger.length>0);
+  $("hub-content").innerHTML=statusHtml+actionsHtml+statsHtml+(showPagos?pagosHtml:"")+gestionHtml;
+}
+
+// Modal: pagos pendientes (de operaciones en curso) + historial de movimientos de caja.
+function showLedgerModal(){
+  if(document.getElementById('ledgerModal')) return;
+  const pend=G.ops.slice().sort((a,b)=>a.payDay-b.payDay).map(o=>{
+    const dCobro=Math.max(0,o.payDay-G.day);
+    const dPago=Math.max(0,(o.costDay||o.payDay)-G.day);
+    return `<div class="ops-row" style="display:block">
+      <div style="font-weight:700;font-size:13px;margin-bottom:2px">${o.co}</div>
+      <div style="display:flex;justify-content:space-between;font-size:12px">
+        <span style="color:var(--good)">▲ Cobrás ${money(o.price)}</span>
+        <span style="color:var(--muted)">${dCobro===0?'hoy':'en '+dCobro+'d'}</span>
+      </div>
+      ${!o.costPaid?`<div style="display:flex;justify-content:space-between;font-size:12px">
+        <span style="color:var(--bad)">▼ Pagás agente ${money(o.costo)}</span>
+        <span style="color:var(--muted)">${dPago===0?'hoy':'en '+dPago+'d'}</span>
+      </div>`:`<div style="font-size:12px;color:var(--muted)">Agente ya pagado</div>`}
+    </div>`;
+  }).join("") || `<div style="color:var(--muted);font-size:13px;text-align:center;padding:8px">No hay envíos en curso.</div>`;
+
+  const hist=G.ledger.slice().reverse().map(e=>{
+    const pos=e.monto>0, zero=e.monto===0;
+    const col=zero?'var(--muted)':pos?'var(--good)':'var(--bad)';
+    const txt=zero?'':(pos?'+':'')+money(e.monto);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)">
+      <span style="font-size:12px">${e.concepto}</span>
+      <span style="font-size:12px;white-space:nowrap;color:var(--muted)">día ${e.day}</span>
+      <span style="font-size:13px;font-weight:700;color:${col};white-space:nowrap;min-width:62px;text-align:right">${txt}</span>
+    </div>`;
+  }).join("") || `<div style="color:var(--muted);font-size:13px;text-align:center;padding:8px">Todavía no hubo movimientos.</div>`;
+
+  const d=document.createElement('div');d.className='modal';d.id='ledgerModal';
+  d.innerHTML=`<div class="modal-box">
+    <div class="modal-title">🧾 Pagos y movimientos</div>
+    <div class="section-lbl">Pendientes (envíos en curso)</div>
+    ${pend}
+    <div class="section-lbl" style="margin-top:12px">Historial de caja</div>
+    <div style="max-height:240px;overflow-y:auto">${hist}</div>
+    <button class="modal-close" onclick="this.closest('.modal').remove()" style="margin-top:12px">Cerrar</button>
+  </div>`;
+  document.body.appendChild(d);
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -2468,12 +2536,14 @@ function resolveIncident(absorb){
   if(absorb){
     // Cobrás la operación pero te comés el costo extra. Buen servicio → +reputación.
     G.cash += inc.price - inc.extra;
+    addLedger("Cobro (absorbiste problema) · "+inc.co, inc.price - inc.extra);
     addRep(1);
     if(inc.agentId) G.rel[inc.agentId]=Math.min(100,G.rel[inc.agentId]+1);
     log("🤝 Resolviste el problema de "+inc.co+" (absorbiste "+money(inc.extra)+"). (reputación +1)");
   }else{
     // No hacés descuento: cobrás todo, pero el cliente queda molesto → -reputación.
     G.cash += inc.price;
+    addLedger("Cobro · "+inc.co, inc.price);
     addRep(-5);
     if(inc.agentId) G.rel[inc.agentId]=Math.max(0,G.rel[inc.agentId]-2);
     log("💸 No hiciste descuento en "+inc.co+": cobraste todo pero quedó molesto. (reputación -5)");
