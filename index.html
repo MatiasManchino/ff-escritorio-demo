@@ -711,7 +711,7 @@ const clamp01=x=>clamp(x,0,1);
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 // Moneda ficticia "Matienzo": símbolo $M̶ y números completos (sin abreviar k/M).
-const CURR="₴";
+const CURR="₦";
 const money=n=>CURR+Math.round(n).toLocaleString("es-AR");
 const shortMoney=money;   // ya no abreviamos: siempre el número completo
 
