@@ -61,6 +61,7 @@
 
   .panels-container{
     flex:1;display:flex;width:300%;height:100%;
+    transform: translateX(calc(var(--ap,1) * -33.333%));   /* posición según panel activo (mobile) */
     transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);
     will-change:transform;
     touch-action:pan-y;
@@ -582,10 +583,41 @@
   .help-tip .ht-close{margin-top:10px;width:100%;background:var(--hub);color:#06222e;border:none;border-radius:var(--radius-sm);padding:11px;font-weight:700;cursor:pointer}
 
   /* ===== RESPONSIVE ===== */
+  /* ===== Tácticas plegables (revelación progresiva) ===== */
+  .tact-group{margin:10px 0 4px;border:1px solid var(--border,#22304d);border-radius:12px;background:rgba(255,255,255,0.02);overflow:hidden}
+  .tact-group>summary{
+    list-style:none;cursor:pointer;padding:11px 14px;font-size:13px;font-weight:700;
+    display:flex;align-items:center;gap:8px;user-select:none;
+  }
+  .tact-group>summary::-webkit-details-marker{display:none}
+  .tact-hint{font-weight:400;font-size:12px;color:var(--muted);flex:1}
+  .tact-caret{transition:transform .25s;opacity:.7}
+  .tact-group[open]>summary .tact-caret{transform:rotate(180deg)}
+  .tact-group .tactics{padding:0 12px 12px}
+
   @media(min-width:640px){
     .panel{padding:0 20px 190px}
     .hud{padding:10px 20px 8px}
     .nav-dots{padding:12px 0 18px}
+  }
+
+  /* ===== PC: carrusel de 3 paneles (activo al centro, costados difuminados) ===== */
+  @media(min-width:980px){
+    .panels-container{
+      width:max-content;
+      gap:32px;
+      /* centra el panel activo: mitad de viewport − mitad de panel − paso*activo */
+      transform: translateX(calc(50vw - 235px - var(--ap,1) * 502px)) !important;
+    }
+    .panel{
+      width:470px;flex:0 0 470px;padding:0 0 190px;
+      transition:transform .35s cubic-bezier(.32,.72,0,1), opacity .35s, filter .35s;
+    }
+    .panel.is-side{opacity:.4;filter:blur(2.5px);transform:scale(.9);cursor:pointer}
+    .panel.is-side:hover{opacity:.6;filter:blur(1.5px)}
+    .panel.is-active{opacity:1;filter:none;transform:scale(1)}
+    .swipe-hint{display:none}
+    /* en PC los costados están a la vista: las flechas/dots siguen funcionando */
   }
 </style>
 </head>
@@ -1657,8 +1689,16 @@ function goPanel(n){
   }
 }
 
+function isPC(){ return window.matchMedia("(min-width:980px)").matches; }
 function updatePanelsPosition(){
-  panelsEl.style.transform="translateX(-"+(activePanel*33.333)+"%)";
+  panelsEl.style.setProperty("--ap", activePanel);
+  panelsEl.style.transform="";   // que el CSS (var --ap) calcule la posición (mobile y PC)
+  // Carrusel PC: marcar el panel activo y los dos costados (difuminados).
+  ["panel-agentes","panel-hub","panel-clientes"].forEach((id,i)=>{
+    const p=document.getElementById(id); if(!p)return;
+    p.classList.toggle("is-active", i===activePanel);
+    p.classList.toggle("is-side", i!==activePanel);
+  });
 }
 
 function updateNavDots(){
@@ -1678,6 +1718,8 @@ const CONTROL_SEL='button,input,textarea,select,a,.seg-btn,.tactic,.hub-action,.
 let gStartX=0,gStartY=0,gDecided=false,gHoriz=false,gActive=false;
 
 function gStart(x,y,target){
+  // En PC no hay arrastre: el carrusel se navega con los dots o clickeando un costado.
+  if(isPC()){ gActive=false; return; }
   // Si arranca sobre un control o dentro de un modal, no tomamos el gesto de swipe.
   if(target && target.closest && target.closest(CONTROL_SEL)){ gActive=false; return; }
   gStartX=x; gStartY=y; gDecided=false; gHoriz=false; gActive=true;
@@ -1713,6 +1755,15 @@ panelsEl.addEventListener("touchend",  e=>gEnd(e.changedTouches[0].clientX),{pas
 panelsEl.addEventListener("mousedown",e=>{ gStart(e.clientX,e.clientY,e.target); if(gActive) panelsEl.style.cursor="grabbing"; });
 document.addEventListener("mousemove",e=>gMove(e.clientX,e.clientY));
 document.addEventListener("mouseup",  e=>gEnd(e.clientX));
+// PC: clic en un panel del costado (difuminado) lo trae al centro, sin activar el botón de abajo.
+document.addEventListener("click",e=>{
+  if(!isPC()) return;
+  const side=e.target.closest&&e.target.closest(".panel.is-side");
+  if(!side) return;
+  e.preventDefault(); e.stopPropagation();
+  const idx=["panel-agentes","panel-hub","panel-clientes"].indexOf(side.id);
+  if(idx>=0) goPanel(idx);
+}, true);
 
 // ═══════════════════════════════════════════════════════════════════════
 //  RENDER ALL
@@ -2089,12 +2140,14 @@ function renderClienteCotizar(){
     ).join("")}</div>
     ${st.term>c.agentTerm?`<div class="note warn"><span class="note-icon">⏰</span><span>Cobras en ${st.term}d pero pagas al agente en ${c.agentTerm}d: usas tu caja.</span></div>`:""}
 
-    <div class="section-lbl">Tácticas (te quedan)</div>
-    <div class="tactics">
-      ${tacticBtn('tiempo','useTactic',st.tactics.tiempo)}
-      ${tacticBtn('valor','useTactic',st.tactics.valor)}
-      ${tacticBtn('anticipo','useTactic',st.tactics.anticipo)}
-    </div>
+    <details class="tact-group">
+      <summary>🎯 Tácticas <span class="tact-hint">para convencer al cliente</span><span class="tact-caret">▾</span></summary>
+      <div class="tactics">
+        ${tacticBtn('tiempo','useTactic',st.tactics.tiempo)}
+        ${tacticBtn('valor','useTactic',st.tactics.valor)}
+        ${tacticBtn('anticipo','useTactic',st.tactics.anticipo)}
+      </div>
+    </details>
 
     <div class="summary">
       <div class="summary-col">
@@ -2235,12 +2288,14 @@ function renderAgenteNeg(){
     </div>
     <div class="note"><span class="note-icon">${ahorro>=0?'🟢':'🔴'}</span><span>vs mercado (${money(c.marketBase)}): ${ahorro>=0?'ahorras '+money(ahorro):'pagas '+money(-ahorro)+' de mas'}</span></div>
 
-    <div class="section-lbl">Tácticas (te quedan)</div>
-    <div class="tactics">
-      ${tacticBtn('farol','agentTactic',an.tactics.farol)}
-      ${tacticBtn('volumen','agentTactic',an.tactics.volumen)}
-      ${tacticBtn('prioridad','agentTactic',an.tactics.prioridad)}
-    </div>
+    <details class="tact-group">
+      <summary>🎯 Tácticas <span class="tact-hint">para que el agente baje</span><span class="tact-caret">▾</span></summary>
+      <div class="tactics">
+        ${tacticBtn('farol','agentTactic',an.tactics.farol)}
+        ${tacticBtn('volumen','agentTactic',an.tactics.volumen)}
+        ${tacticBtn('prioridad','agentTactic',an.tactics.prioridad)}
+      </div>
+    </details>
 
     <div class="section-lbl">Plazo de pago al agente (max ${a.plazoMax}d)</div>
     <div class="seg">${[0,15,30,45].map(d=>
