@@ -724,6 +724,7 @@ const shortMoney=n=>{
 //  Se envía en lotes (cada 15 ev. o 20s) y al cerrar/ocultar la pestaña.
 // ═══════════════════════════════════════════════════════════════════════
 const ANALYTICS_URL='https://script.google.com/macros/s/AKfycbwzbroCokgpRllaM_z6JLsAZvB5R5s2d-nIO_D8SbreGnKcCmwXUX2uLQivtlp954ac/exec';
+const API_KEY='ff2026';   // clave compartida: el Apps Script descarta POSTs sin ella (frena bots casuales)
 const SESSION_ID = (Date.now().toString(36)+Math.random().toString(36).slice(2,7)).toUpperCase();
 const SESSION_START = Date.now();
 let _evBuffer=[], _evSeq=0, _lastEventAt=SESSION_START;
@@ -751,7 +752,7 @@ function track(type, data){
 // Manda el lote acumulado a la planilla. useBeacon=true al cerrar (no bloquea).
 function flushEvents(useBeacon){
   if(!_evBuffer.length) return;
-  const payload=JSON.stringify({kind:"analytics", sid:SESSION_ID, events:_evBuffer});
+  const payload=JSON.stringify({k:API_KEY, kind:"analytics", sid:SESSION_ID, events:_evBuffer});
   _evBuffer=[];
   try{
     if(useBeacon && navigator.sendBeacon){
@@ -2447,6 +2448,7 @@ function showIntro(){
     <div class="note" style="background:var(--warn-bg);border:1px solid rgba(251,191,36,0.2);margin-top:12px"><span class="note-icon">🧠</span><span>Con el <b>agente</b> pensás "cómo gasto menos". Con el <b>cliente</b>, "cómo gano más".</span></div>
     <button class="modal-close" onclick="this.closest('.modal').remove();showConsultaModal()">▶ Empezar a jugar</button>
     <button class="modal-close ghost" onclick="this.closest('.modal').remove();showRulesModal()">📖 Ver reglas completas</button>
+    <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:10px;line-height:1.4">🔒 Esta demo registra de forma <b>anónima</b> cómo se juega (sin datos personales) para mejorarla.</div>
   </div>`;
   document.body.appendChild(d);
   // El centro (Hub) es el punto de partida natural detrás de la intro.
@@ -2692,7 +2694,7 @@ function submitFeedback(){
   track('feedback_submit',{rating,again});
   flushEvents();
   const GOOGLE_SCRIPT_URL='https://script.google.com/macros/s/AKfycbwzbroCokgpRllaM_z6JLsAZvB5R5s2d-nIO_D8SbreGnKcCmwXUX2uLQivtlp954ac/exec';
-  fetch(GOOGLE_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({sid:SESSION_ID,name,rating,again,comments,stats,date:new Date().toLocaleString()})});
+  fetch(GOOGLE_SCRIPT_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify({k:API_KEY,sid:SESSION_ID,name,rating,again,comments,stats,date:new Date().toLocaleString()})});
 
   alert('¡Gracias por tu feedback! Se guardo correctamente.');
   modal.remove();
