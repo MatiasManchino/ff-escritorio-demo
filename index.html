@@ -454,6 +454,29 @@
   .shake{animation:shake 0.3s ease}
 
   /* ===== INTRO ===== */
+  /* Banner de objetivo: bien vistoso, con contraste y movimiento */
+  .goal-banner{
+    position:relative;overflow:hidden;text-align:center;
+    margin:14px 0;padding:16px 14px;border-radius:16px;
+    background:linear-gradient(135deg, rgba(74,222,128,0.18), rgba(56,189,248,0.14));
+    border:2px solid var(--good);
+    box-shadow:0 0 0 rgba(74,222,128,0.5);
+    animation:goalPulse 2.2s ease-in-out infinite;
+  }
+  .goal-banner::after{   /* brillo que se desliza */
+    content:"";position:absolute;top:0;left:-60%;width:50%;height:100%;
+    background:linear-gradient(100deg,transparent,rgba(255,255,255,0.18),transparent);
+    transform:skewX(-20deg);animation:goalShine 3.2s ease-in-out infinite;
+  }
+  .gb-label{font-size:12px;font-weight:800;letter-spacing:2px;color:var(--good)}
+  .gb-line{font-size:13px;color:var(--txt2);margin-top:4px}
+  .gb-amount{font-size:38px;font-weight:900;letter-spacing:-1px;line-height:1.05;margin:2px 0;
+    color:#eafff1;text-shadow:0 0 18px rgba(74,222,128,0.7);animation:goalBeat 2.2s ease-in-out infinite}
+  .gb-sub{font-size:11.5px;color:var(--muted);margin-top:4px}
+  @keyframes goalPulse{0%,100%{box-shadow:0 0 0 rgba(74,222,128,0)}50%{box-shadow:0 0 22px rgba(74,222,128,0.45)}}
+  @keyframes goalBeat{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+  @keyframes goalShine{0%{left:-60%}55%,100%{left:130%}}
+
   .intro-logo{font-size:54px;text-align:center;margin-bottom:6px}
   .intro-title{text-align:center;color:var(--accent);font-size:24px;font-weight:800;letter-spacing:-0.5px}
   .intro-sub{text-align:center;color:var(--violet);font-weight:700;letter-spacing:3px;font-size:11px;margin-bottom:16px}
@@ -2510,9 +2533,11 @@ function showIntro(){
     <div class="intro-title">FREIGHT FORWARDER</div>
     <div class="intro-sub">EL ESCRITORIO</div>
     <div class="story">Sos un <b>agente de cargas</b>. Estás en el medio: de un lado el <b>cliente</b> que quiere mover su mercadería, del otro los <b>agentes</b> (navieras, aéreas, transportistas) que te dan la tarifa. <b>Tu negocio es la diferencia.</b></div>
-    <div class="note" style="background:var(--good-bg);border:1px solid rgba(74,222,128,0.25);margin-top:10px">
-      <span class="note-icon" style="font-size:18px">🎯</span>
-      <span><b>Tu objetivo:</b> hacé crecer tu caja hasta <b>${money(G.goal)}</b> sin fundirte. Si llega a 0, perdés.</span>
+    <div class="goal-banner">
+      <div class="gb-label">🎯 TU OBJETIVO</div>
+      <div class="gb-line">Hacé crecer la empresa hasta</div>
+      <div class="gb-amount">${money(G.goal)}</div>
+      <div class="gb-sub">¡y ganás! &nbsp;·&nbsp; si la caja llega a 0, perdés</div>
     </div>
     <div class="section-lbl">Cómo se juega</div>
     <div class="intro-step"><span class="n">1️⃣</span><div><div class="t">Llega una consulta</div><div class="d">Un cliente te dice qué necesita mover.</div></div></div>
