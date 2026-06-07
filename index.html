@@ -712,7 +712,9 @@ const rnd=(a,b)=>a+Math.random()*(b-a);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 // Moneda ficticia "Matienzo": símbolo $M̶ y números completos (sin abreviar k/M).
 const CURR="₦";
-const money=n=>CURR+Math.round(n).toLocaleString("es-AR");
+// Mostramos los montos un dígito más chico (÷10) y sin decimales. La economía interna
+// sigue igual; esto es solo cómo se ve (ej. interno 5199 → en pantalla ₦520).
+const money=n=>CURR+Math.round(n/10).toLocaleString("es-AR");
 const shortMoney=money;   // ya no abreviamos: siempre el número completo
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -2162,14 +2164,14 @@ function renderClienteCotizar(){
 
     <div class="quote-card">
       <div class="summary" style="margin:0 0 12px">
-        <div class="summary-col"><span class="summary-label">Cobrás</span><span class="summary-value" style="color:var(--good)">${money(st.price)}</span></div>
+        <div class="summary-col"><span class="summary-label">Cobrás</span><span class="summary-value" style="color:var(--good)">${CURR}${Math.round(st.price/10).toLocaleString("es-AR")}</span></div>
         <div class="summary-op">-</div>
-        <div class="summary-col"><span class="summary-label">Pagás</span><span class="summary-value" style="color:var(--bad)">${money(costo)}</span></div>
+        <div class="summary-col"><span class="summary-label">Pagás</span><span class="summary-value" style="color:var(--bad)">${CURR}${Math.round(costo/10).toLocaleString("es-AR")}</span></div>
         <div class="summary-op">=</div>
-        <div class="summary-col"><span class="summary-label">Ganás</span><span class="summary-value" style="color:var(--accent)">${money(st.price-costo)}</span></div>
+        <div class="summary-col"><span class="summary-label">Ganás</span><span class="summary-value" style="color:var(--accent)">${CURR}${(Math.round(st.price/10)-Math.round(costo/10)).toLocaleString("es-AR")}</span></div>
       </div>
       <div class="range-wrap">
-        <input type="range" min="${floor}" max="${cap}" value="${st.price}" step="25"
+        <input type="range" min="${floor}" max="${cap}" value="${st.price}" step="50"
           oninput="G.st.price=+this.value;renderAll()">
       </div>
       <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted)">
