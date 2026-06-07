@@ -595,6 +595,12 @@
   .tact-group[open]>summary .tact-caret{transform:rotate(180deg)}
   .tact-group .tactics{padding:0 12px 12px}
 
+  /* Listas compactas del Escritorio (resumen, ops, pagos) */
+  .mini-list{background:var(--panel2,#13203a);border:1px solid var(--border,#22304d);border-radius:10px;padding:2px 12px;margin-top:6px}
+  .mini-row{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:7px 0;border-bottom:1px solid var(--line)}
+  .mini-row:last-child{border-bottom:none}
+  .mini-empty{font-size:12px;color:var(--muted);text-align:center;padding:9px}
+
   /* Tácticas como menú desplegable que NO empuja el contenido (overlay) */
   .tact-dropdown{position:relative;margin:0;overflow:visible}
   .tact-dropdown>summary{justify-content:center;padding:13px 12px}
@@ -1876,11 +1882,6 @@ function renderHud(){
       <div class="hud-lbl">¿Cómo vas?</div>
       <div class="hud-val" style="font-size:13px;color:${est.c}">${est.e} ${est.t}</div>
     </div>
-    <div class="hud-cell click" onclick="showOpsModal()" title="Operaciones en curso">
-      <div class="hud-lbl">📋 Envíos</div>
-      <div class="hud-val">${G.ops.length}/${G.capacity}</div>
-      ${G.ops.length>0?'<span class="hud-badge">'+G.ops.length+'</span>':''}
-    </div>
     <div class="hud-cell click" onclick="toggleSound()" title="Activar/silenciar sonido">
       <div class="hud-lbl">${soundOn?'🔊':'🔇'}</div>
       <div class="hud-val" style="font-size:11px">${soundOn?'Son.':'Mute'}</div>
@@ -1940,95 +1941,70 @@ function renderHub(){
   }
 
   // Action cards
+  // Acción rápida: solo "Cotizar al cliente" (cuando ya tenés costo). Buscar tarifa se hace deslizando a Agentes.
   let actionsHtml="";
-  if(!G.over&&G.st&&!G.st.finished){
-    actionsHtml+=`
-      <div class="section-lbl">Acciones rapidas</div>
-      ${needAgent?`
-        <div class="hub-action" onclick="goPanel(0)" style="border-color:var(--violet)">
-          <span class="ha-icon">🚢</span>
-          <div class="ha-content">
-            <div class="ha-title" style="color:var(--violet)">Buscar tarifa con agentes</div>
-            <div class="ha-desc">Consegui el costo mas bajo posible</div>
-          </div>
-          <span class="ha-arrow">→</span>
+  if(!G.over&&G.st&&!G.st.finished&&hasCost){
+    actionsHtml=`
+      <div class="section-lbl">Acción rápida</div>
+      <div class="hub-action" onclick="showQuoteRequestModal()" style="border-color:var(--accent)">
+        <span class="ha-icon">💰</span>
+        <div class="ha-content">
+          <div class="ha-title" style="color:var(--accent)">Cotizar al cliente</div>
+          <div class="ha-desc">Arma tu cotizacion y negocia la venta</div>
         </div>
-      `:''}
-      ${hasCost?`
-        <div class="hub-action" onclick="showQuoteRequestModal()" style="border-color:var(--accent)">
-          <span class="ha-icon">💰</span>
-          <div class="ha-content">
-            <div class="ha-title" style="color:var(--accent)">Cotizar al cliente</div>
-            <div class="ha-desc">Arma tu cotizacion y negocia la venta</div>
-          </div>
-          <span class="ha-arrow">→</span>
-        </div>
-      `:''}
-    `;
+        <span class="ha-arrow">→</span>
+      </div>`;
   }
 
-  // Quick stats
+  // Resumen compacto (2 filas).
   const statsHtml=`
     <div class="section-lbl">Resumen</div>
-    <div class="score-grid">
-      <div class="score-cell">
-        <div class="score-label">Cerrados</div>
-        <div class="score-value" style="color:var(--good)">${G.deals}</div>
-      </div>
-      <div class="score-cell">
-        <div class="score-label">Perdidos</div>
-        <div class="score-value" style="color:var(--bad)">${G.lost}</div>
-      </div>
-      <div class="score-cell">
-        <div class="score-label">Problemas</div>
-        <div class="score-value" style="color:var(--warn)">${G.problems}</div>
-      </div>
-      <div class="score-cell">
-        <div class="score-label">Gastos/mes</div>
-        <div class="score-value" style="color:var(--info)">${shortMoney(G.monthly)}</div>
-      </div>
+    <div class="mini-list">
+      <div class="mini-row"><span>Cerrados <b style="color:var(--good)">${G.deals}</b></span><span>Perdidos <b style="color:var(--bad)">${G.lost}</b></span></div>
+      <div class="mini-row"><span>Problemas <b style="color:var(--warn)">${G.problems}</b></span><span>Gastos/mes <b style="color:var(--info)">${shortMoney(G.monthly)}</b></span></div>
     </div>
   `;
 
-  // Pagos: por cobrar (clientes) y por pagar (agentes) de las operaciones en curso.
-  const porCobrar=G.ops.reduce((s,o)=>s+o.price,0);
-  const porPagar =G.ops.filter(o=>!o.costPaid).reduce((s,o)=>s+o.costo,0);
-  const pagosHtml=`
-    <div class="section-lbl">Pagos</div>
-    <div class="score-grid" style="grid-template-columns:1fr 1fr">
-      <div class="score-cell">
-        <div class="score-label">Por cobrar</div>
-        <div class="score-value" style="color:var(--good)">${money(porCobrar)}</div>
-        <div class="score-label" style="margin-top:2px">${G.ops.length} envío(s)</div>
-      </div>
-      <div class="score-cell">
-        <div class="score-label">Por pagar a agentes</div>
-        <div class="score-value" style="color:var(--bad)">${money(porPagar)}</div>
-        <div class="score-label" style="margin-top:2px">${G.ops.filter(o=>!o.costPaid).length} pendiente(s)</div>
-      </div>
-    </div>
-    <div class="hub-action" onclick="showLedgerModal()" style="margin-top:8px">
-      <span class="ha-icon">🧾</span>
-      <div class="ha-content">
-        <div class="ha-title">Historial y pagos pendientes</div>
-        <div class="ha-desc">Ver cobros, pagos y movimientos de caja</div>
-      </div>
-      <span class="ha-arrow">→</span>
-    </div>
-  `;
-
-  // Gestiones
-  const gestionHtml=`
-    <div class="section-lbl">Gestion</div>
+  // Operaciones en curso: botón + preview de los 3 próximos cobros.
+  const opsPrev=G.ops.slice().sort((a,b)=>a.payDay-b.payDay).slice(0,3).map(o=>{
+    const dC=Math.max(0,o.payDay-G.day);
+    return `<div class="mini-row"><span>${o.co}</span><span style="color:var(--good)">+${shortMoney(o.price)} <span style="color:var(--muted)">${dC===0?'hoy':dC+'d'}</span></span></div>`;
+  }).join("");
+  const opsHtml=`
+    <div class="section-lbl">Operaciones en curso</div>
     <div class="hub-action" onclick="showOpsModal()">
       <span class="ha-icon">📋</span>
       <div class="ha-content">
-        <div class="ha-title">Operaciones en curso</div>
-        <div class="ha-desc">${G.ops.length} activas · Ver detalles y avanzar tiempo</div>
+        <div class="ha-title">${G.ops.length} activa(s)</div>
+        <div class="ha-desc">Ver detalles y avanzar tiempo</div>
       </div>
       <span class="ha-arrow">→</span>
     </div>
-    <div class="hub-action" onclick="showRulesModal()">
+    <div class="mini-list">${opsPrev||'<div class="mini-empty">Sin envíos en curso</div>'}</div>
+  `;
+
+  // Pagos: solo historial + preview de los últimos 3 movimientos.
+  const ledPrev=G.ledger.slice(-3).reverse().map(e=>{
+    const col=e.monto>0?'var(--good)':e.monto<0?'var(--bad)':'var(--muted)';
+    const txt=e.monto===0?'':(e.monto>0?'+':'')+shortMoney(e.monto);
+    return `<div class="mini-row"><span>${e.concepto}</span><span style="color:${col};white-space:nowrap">${txt}</span></div>`;
+  }).join("");
+  const pagosHtml=`
+    <div class="section-lbl">Pagos</div>
+    <div class="hub-action" onclick="showLedgerModal()">
+      <span class="ha-icon">🧾</span>
+      <div class="ha-content">
+        <div class="ha-title">Historial y pagos pendientes</div>
+        <div class="ha-desc">Cobros, pagos y movimientos de caja</div>
+      </div>
+      <span class="ha-arrow">→</span>
+    </div>
+    <div class="mini-list">${ledPrev||'<div class="mini-empty">Sin movimientos todavía</div>'}</div>
+  `;
+
+  // Gestión: cómo jugar.
+  const gestionHtml=`
+    <div class="hub-action" onclick="showRulesModal()" style="margin-top:14px">
       <span class="ha-icon">📖</span>
       <div class="ha-content">
         <div class="ha-title">Como jugar</div>
@@ -2038,8 +2014,8 @@ function renderHub(){
     </div>
   `;
 
-  const showPagos = !G.over && (G.ops.length>0 || G.ledger.length>0);
-  $("hub-content").innerHTML=statusHtml+actionsHtml+statsHtml+(showPagos?pagosHtml:"")+gestionHtml;
+  const showGestion = !G.over && (G.ops.length>0 || G.ledger.length>0);
+  $("hub-content").innerHTML=statusHtml+actionsHtml+statsHtml+(showGestion?opsHtml+pagosHtml:"")+gestionHtml;
 }
 
 // Modal: pagos pendientes (de operaciones en curso) + historial de movimientos de caja.
