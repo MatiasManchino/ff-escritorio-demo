@@ -595,6 +595,17 @@
   .tact-group[open]>summary .tact-caret{transform:rotate(180deg)}
   .tact-group .tactics{padding:0 12px 12px}
 
+  /* Tácticas como menú desplegable que NO empuja el contenido (overlay) */
+  .tact-dropdown{position:relative;margin:0;overflow:visible}
+  .tact-dropdown>summary{justify-content:center;padding:13px 12px}
+  .tact-dropdown .tactics-menu{
+    position:absolute;top:100%;left:0;right:0;margin-top:6px;z-index:60;
+    background:var(--panel2,#13203a);border:1px solid var(--border,#22304d);
+    border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:8px;
+    box-shadow:0 14px 34px rgba(0,0,0,.6);
+  }
+  .tact-dropdown .tactics-menu .tactic{flex:none;width:100%;text-align:left}
+
   @media(min-width:640px){
     .panel{padding:0 20px 190px}
     .hud{padding:10px 20px 8px}
@@ -2116,21 +2127,23 @@ function renderClienteCotizar(){
       </div>
     </div>
 
-    <!-- Barra de chance de cierre EN VIVO: reacciona al mover el precio -->
-    <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin:2px 0 3px">
-      <span style="color:var(--muted)">Chance de que acepte</span>
-      <b style="color:${acc>0.5?'var(--good)':acc>0.3?'var(--warn)':'var(--bad)'}">${acc>0.6?'😀':acc>0.4?'🙂':'😟'} ${Math.round(acc*100)}%</b>
-    </div>
-    <div class="close-bar"><i style="width:${Math.round(acc*100)}%;background:${acc>0.5?'var(--good)':acc>0.3?'var(--warn)':'var(--bad)'}"></i></div>
+    <div class="close-bar" style="margin-top:6px"><i style="width:${Math.round(acc*100)}%;background:${acc>0.5?'var(--good)':acc>0.3?'var(--warn)':'var(--bad)'}"></i></div>
     <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px">
       <span>← más barato cierra más fácil</span><span>más caro ganás más →</span>
     </div>
 
+    <!-- Chance (grande) + consejo, compartiendo el ancho -->
+    <div style="display:flex;gap:10px;align-items:stretch;margin:8px 0 4px">
+      <div style="flex:0 0 auto;min-width:96px;text-align:center;background:var(--panel2,#13203a);border:1px solid var(--border,#22304d);border-radius:12px;padding:6px 10px;display:flex;flex-direction:column;justify-content:center">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Chance</div>
+        <div style="font-size:26px;font-weight:800;line-height:1.05;color:${acc>0.5?'var(--good)':acc>0.3?'var(--warn)':'var(--bad)'}">${acc>0.6?'😀':acc>0.4?'🙂':'😟'} ${Math.round(acc*100)}%</div>
+      </div>
+      <div class="note ${m<0.13||acc<0.4?'warn':''}" style="flex:1;margin:0"><span class="note-icon">💬</span><span>${advice(st,acc,risk.total,m)}</span></div>
+    </div>
+
     ${st.revealed.length?`<div class="note"><span class="note-icon">💡</span><span>${st.revealed[st.revealed.length-1]}</span></div>`:""}
-    <div class="note ${m<0.13||acc<0.4?'warn':''}"><span class="note-icon">💬</span><span>${advice(st,acc,risk.total,m)}</span></div>
     ${c.unwinnable?`<div class="note" style="background:var(--bad-bg);border:1px solid rgba(248,113,113,0.3)"><span class="note-icon">🚫</span><span>A este cliente <b>no le cierra el negocio ni a tu precio mínimo</b>. Lo más inteligente es <b>pasar</b> esta carga.</span></div>`:""}
-    ${st.targetKnown?`<div class="note" style="background:var(--good-bg);border:1px solid rgba(74,222,128,0.2)"><span class="note-icon">🎯</span><span>El cliente apunta a <b>${money(st.targetKnown)}</b>. Acercate a ese número.</span></div>`
-      :`<div class="btn-row" style="margin-top:4px"><button class="btn btn-ghost" onclick="askTarget()" ${st.targetAsked?'disabled':''}>${st.targetAsked?'Ya le preguntaste':'🎯 Preguntar cuánto quiere pagar'}</button></div>`}
+    ${st.targetKnown?`<div class="note" style="background:var(--good-bg);border:1px solid rgba(74,222,128,0.2)"><span class="note-icon">🎯</span><span>El cliente apunta a <b>${money(st.targetKnown)}</b>. Acercate a ese número.</span></div>`:""}
 
     <div class="section-lbl">Plazo de pago</div>
     <div class="seg">${[0,15,30,45,60].map(d=>
@@ -2138,14 +2151,18 @@ function renderClienteCotizar(){
     ).join("")}</div>
     ${st.term>c.agentTerm?`<div class="note warn"><span class="note-icon">⏰</span><span>Cobras en ${st.term}d pero pagas al agente en ${c.agentTerm}d: usas tu caja.</span></div>`:""}
 
-    <details class="tact-group">
-      <summary>🎯 Tácticas <span class="tact-hint">para convencer al cliente</span><span class="tact-caret">▾</span></summary>
-      <div class="tactics">
-        ${tacticBtn('tiempo','useTactic',st.tactics.tiempo)}
-        ${tacticBtn('valor','useTactic',st.tactics.valor)}
-        ${tacticBtn('anticipo','useTactic',st.tactics.anticipo)}
-      </div>
-    </details>
+    <!-- Preguntar precio (izq) + Tácticas desplegable (der, overlay) -->
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-ghost" style="flex:1" onclick="askTarget()" ${st.targetAsked?'disabled':''}>🎯 ${st.targetAsked?'Ya preguntaste':'¿Cuánto quiere pagar?'}</button>
+      <details class="tact-group tact-dropdown" style="flex:1">
+        <summary>🎯 Tácticas <span class="tact-caret">▾</span></summary>
+        <div class="tactics tactics-menu">
+          ${tacticBtn('tiempo','useTactic',st.tactics.tiempo)}
+          ${tacticBtn('valor','useTactic',st.tactics.valor)}
+          ${tacticBtn('anticipo','useTactic',st.tactics.anticipo)}
+        </div>
+      </details>
+    </div>
 
     <div class="btn-row" style="margin-top:10px">
       <button class="btn btn-primary nudge" onclick="sendQuote()">📨 Enviar cotización</button>
