@@ -710,13 +710,10 @@ const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 const clamp01=x=>clamp(x,0,1);
 const rnd=(a,b)=>a+Math.random()*(b-a);
 const pick=a=>a[Math.floor(Math.random()*a.length)];
-const money=n=>"$"+Math.round(n).toLocaleString("es-AR");
-const shortMoney=n=>{
-  const r=Math.round(n);
-  if(r>=1000000)return "$"+(r/1000000).toFixed(1)+"M";
-  if(r>=1000)return "$"+(r/1000).toFixed(0)+"k";
-  return "$"+r;
-};
+// Moneda ficticia "Matienzo": símbolo $M̶ y números completos (sin abreviar k/M).
+const CURR="$M̶ ";
+const money=n=>CURR+Math.round(n).toLocaleString("es-AR");
+const shortMoney=money;   // ya no abreviamos: siempre el número completo
 
 // ═══════════════════════════════════════════════════════════════════════
 //  ANALYTICS — tracking de comportamiento (se manda a tu Google Sheet)
