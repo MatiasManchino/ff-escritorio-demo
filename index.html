@@ -864,6 +864,8 @@ function newGame(){
     won:false,                  // ya alcanzaste la meta al menos una vez (modo libre)
     clientNum:0,                // cuántos clientes llegaron (para la rampa de dificultad)
     ledger:[],                  // historial de movimientos de caja (cobros/pagos)
+    streak:0,                   // racha de cierres seguidos sin perder
+    achievements:{},            // logros desbloqueados (id → true)
     clientHist:{},              // historial por empresa: {deals, profit}
     monthStartCash:6000,        // para el resumen de fin de mes
     seenTips:{}                 // tooltips contextuales ya mostrados
@@ -1128,7 +1130,7 @@ function declineClient(){
   if(G.st.finished) return;
   track('deal_abandoned',{empresa:G.st.cargo.co, teniaCosto:G.st.cargo.costo!=null, ronda:G.st.round});
   const frases=["Lo lamento, esta vez no llego con el número.","No te puedo ayudar en esta operación, disculpá.","Prefiero no tomar esta carga, no me cierra.","Te quedo debiendo esta; ahora no puedo."];
-  G.lost++;
+  G.lost++; G.streak=0;
   if(G.st.cargo.agentId){
     G.rel[G.st.cargo.agentId]=Math.max(0,G.rel[G.st.cargo.agentId]-3);
     log("Soltaste la tarifa de "+agentById(G.st.cargo.agentId).nombre+": quedó algo molesto.");
@@ -1186,6 +1188,7 @@ function closeDeal(){
   st.dealClosed=true;
   const m=(st.price-st.cargo.costo)/st.cargo.costo;
   G.deals++;
+  G.streak++;   // racha de cierres seguidos (logros A)
   const risk=estimateRisk(st);
   const payDay=G.day+st.term+Math.round(rnd(0,3));
   const costDay=G.day+Math.min(st.cargo.agentTerm,st.term||999);
@@ -1214,7 +1217,7 @@ function closeDeal(){
 function loseDeal(msg){
   const st=G.st;
   st.finished=true;
-  G.lost++;
+  G.lost++; G.streak=0;
   track('deal_lost',{empresa:st.cargo.co, motivo:msg, teniaCosto:st.cargo.costo!=null, ronda:st.round});
   registrarRegateoFallido();        // si regateaste con el agente y no cerraste, lo recuerda
   // Una carga que NO cerraste pesa poco en tu fama (pero suma si se repite).
@@ -1413,6 +1416,38 @@ function addLedger(concepto, monto){
   G.ledger.push({day:G.day, concepto, monto:Math.round(monto)});
   if(G.ledger.length>60) G.ledger.shift();
 }
+
+// ── PROGRESIÓN A: LOGROS / HITOS (con festejo) ─────────────────────────
+// Cada uno se desbloquea una sola vez. cond(G) → true cuando se cumple.
+const ACHIEVEMENTS=[
+  {id:"first",   ic:"🤝", txt:"Primer trato cerrado",      cond:G=>G.deals>=1},
+  {id:"deals5",  ic:"📦", txt:"5 tratos cerrados",          cond:G=>G.deals>=5},
+  {id:"deals15", ic:"🏗️", txt:"15 tratos cerrados",         cond:G=>G.deals>=15},
+  {id:"streak3", ic:"🔥", txt:"Racha de 3 sin perder",      cond:G=>G.streak>=3, reward:true},
+  {id:"streak5", ic:"⚡", txt:"Racha de 5 sin perder",      cond:G=>G.streak>=5, reward:true},
+  {id:"cashHalf",ic:"💰", txt:"Mitad de la meta en caja",   cond:G=>G.cash>=G.goal/2},
+];
+// Revisa logros nuevos y los festeja. Se llama tras cada acción relevante.
+function checkAchievements(){
+  if(!G||G.over) return;
+  for(const a of ACHIEVEMENTS){
+    if(!G.achievements[a.id] && a.cond(G)){
+      G.achievements[a.id]=true;
+      let extra="";
+      if(a.reward){                       // las rachas regalan una táctica
+        const k=pick(TACTIC_KEYS); G.inv[k]=(G.inv[k]||0)+1;
+        extra="<br><span style='font-size:12px;opacity:.9'>🎁 Bonus: "+TACTIC_EMOJI[k]+" "+TACTIC_NAMES[k]+"</span>";
+      }
+      bigToast(a.ic+" ¡Logro! "+a.txt+extra);
+      log("🏅 Logro desbloqueado: "+a.txt);
+    }
+  }
+}
+
+// ── PROGRESIÓN C: NIVEL (deriva de la reputación) ──────────────────────
+// rep 0 = Nivel 1; cada +10 de fama sube un nivel y desbloquea clientes más grandes.
+function nivel(){ return 1+Math.floor(Math.max(0,G.rep)/10); }
+function nivelProg(){ return (Math.max(0,G.rep)%10)/10; }   // 0..1 hacia el próximo nivel
 // Cambia la reputación dentro del rango -100..100. Si toca -100, se pierde por mala fama.
 function addRep(delta){
   G.rep=clamp(G.rep+delta,-100,100);
@@ -1435,8 +1470,12 @@ function tick(d){
   }
   if(G.rep>=G.tierMsg+10){
     G.tierMsg+=10;
-    if(G.supplierTerm<45){G.supplierTerm+=15;log("Reputacion arriba: tus agentes te estiran el credito.");}
-    else log("Reputacion arriba: llegan clientes y cargas mas grandes.");
+    const desbloqueo = G.supplierTerm<45
+      ? "Tus agentes te estiran el crédito de pago."
+      : "Empiezan a llegar clientes y cargas más grandes.";
+    if(G.supplierTerm<45) G.supplierTerm+=15;
+    bigToast("🎚️ ¡Subiste a Nivel "+nivel()+"!<br><span style='font-size:12px;opacity:.9'>"+desbloqueo+"</span>");
+    log("⬆️ Nivel "+nivel()+": "+desbloqueo);
   }
   checkVictory();   // #5: ¿la caja llegó a la meta?
 }
@@ -1800,6 +1839,7 @@ function renderAll(){
   renderClientes();
   renderAgentes();
   if(G.over)renderGameOver();
+  checkAchievements();   // progresión A: festeja hitos nuevos
 }
 
 // ── Guía paso a paso: muestra en qué etapa estás y qué conviene hacer ahora ──
@@ -1948,6 +1988,20 @@ function renderHub(){
       </div>`;
   }
 
+  // Progresión C: nivel visible (deriva de la fama) + barra al próximo.
+  const lv=nivel(), prog=Math.round(nivelProg()*100);
+  const nivelHtml=`
+    <div class="section-lbl">Tu progreso</div>
+    <div class="mini-list" style="padding:10px 12px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+        <span style="font-weight:700;font-size:14px">🎚️ Nivel ${lv}</span>
+        <span style="font-size:11px;color:var(--muted)">${G.rep>=0?'Subí de fama para desbloquear clientes más grandes':'Recuperá fama para volver a crecer'}</span>
+      </div>
+      <div class="goal-bar"><i style="width:${prog}%;background:var(--hub)"></i></div>
+      ${G.streak>=2?`<div style="font-size:12px;color:var(--warn);margin-top:6px">🔥 Racha: ${G.streak} cierres seguidos</div>`:''}
+    </div>
+  `;
+
   // Resumen compacto (2 filas).
   const statsHtml=`
     <div class="section-lbl">Resumen</div>
@@ -2007,7 +2061,8 @@ function renderHub(){
   `;
 
   const showGestion = !G.over && (G.ops.length>0 || G.ledger.length>0);
-  $("hub-content").innerHTML=statusHtml+actionsHtml+statsHtml+(showGestion?opsHtml+pagosHtml:"")+gestionHtml;
+  const progresoHtml = (!G.over && G.st && !G.st.finished) ? nivelHtml : "";
+  $("hub-content").innerHTML=statusHtml+actionsHtml+progresoHtml+statsHtml+(showGestion?opsHtml+pagosHtml:"")+gestionHtml;
 }
 
 // Modal: pagos pendientes (de operaciones en curso) + historial de movimientos de caja.
