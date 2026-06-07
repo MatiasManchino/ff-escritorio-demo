@@ -2104,34 +2104,28 @@ function renderClienteCotizar(){
         <input type="range" min="${floor}" max="${cap}" value="${st.price}" step="25"
           oninput="G.st.price=+this.value;renderAll()">
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted)">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:8px">
         <span>Piso ${money(floor)}</span>
         <span style="color:${m<=0.12?'var(--warn)':'var(--good)'}">Margen ${Math.round(m*100)}%</span>
         <span>Max ${money(cap)}</span>
       </div>
+      <div class="summary" style="margin:0">
+        <div class="summary-col"><span class="summary-label">Cobrás</span><span class="summary-value" style="color:var(--good)">${money(st.price)}</span></div>
+        <div class="summary-op">-</div>
+        <div class="summary-col"><span class="summary-label">Pagás</span><span class="summary-value" style="color:var(--bad)">${money(costo)}</span></div>
+        <div class="summary-op">=</div>
+        <div class="summary-col"><span class="summary-label">Ganás</span><span class="summary-value" style="color:var(--accent)">${money(st.price-costo)}</span></div>
+      </div>
     </div>
 
-    <div class="duo">
-      <div class="duo-box">
-        <div class="duo-label">Ganancia</div>
-        <div class="duo-value" style="color:var(--good)">${money(st.price-costo)}</div>
-      </div>
-      <div class="duo-box">
-        <div class="duo-label">Chance de que acepte</div>
-        <div class="duo-value" style="color:${acc>0.5?'var(--good)':acc>0.3?'var(--warn)':'var(--bad)'}">${acc>0.6?'😀':acc>0.4?'🙂':'😟'} ${Math.round(acc*100)}%</div>
-      </div>
-    </div>
     <!-- Barra de chance de cierre EN VIVO: reacciona al mover el precio -->
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin:2px 0 3px">
+      <span style="color:var(--muted)">Chance de que acepte</span>
+      <b style="color:${acc>0.5?'var(--good)':acc>0.3?'var(--warn)':'var(--bad)'}">${acc>0.6?'😀':acc>0.4?'🙂':'😟'} ${Math.round(acc*100)}%</b>
+    </div>
     <div class="close-bar"><i style="width:${Math.round(acc*100)}%;background:${acc>0.5?'var(--good)':acc>0.3?'var(--warn)':'var(--bad)'}"></i></div>
     <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px">
       <span>← más barato cierra más fácil</span><span>más caro ganás más →</span>
-    </div>
-
-    <div class="section-lbl">Analisis</div>
-    <div class="analysis">
-      <div class="an-row"><span class="an-emoji">${w.comp[0]}</span><span><b class="an-label">${w.comp[1]}</b></span></div>
-      <div class="an-row"><span class="an-emoji">${w.rk[0]}</span><span><b class="an-label">${w.rk[1]}</b><span class="an-detail"> · Agente ${c.conf}% confiable${c.prioridad?' · ⚡ prioridad':''}</span></span></div>
-      <div class="an-row"><span class="an-emoji">${w.rent[0]}</span><span><b class="an-label">${w.rent[1]}</b></span></div>
     </div>
 
     ${st.revealed.length?`<div class="note"><span class="note-icon">💡</span><span>${st.revealed[st.revealed.length-1]}</span></div>`:""}
@@ -2155,24 +2149,7 @@ function renderClienteCotizar(){
       </div>
     </details>
 
-    <div class="summary">
-      <div class="summary-col">
-        <span class="summary-label">Cobras</span>
-        <span class="summary-value" style="color:var(--good)">${money(st.price)}</span>
-      </div>
-      <div class="summary-op">-</div>
-      <div class="summary-col">
-        <span class="summary-label">Pagas</span>
-        <span class="summary-value" style="color:var(--bad)">${money(costo)}</span>
-      </div>
-      <div class="summary-op">=</div>
-      <div class="summary-col">
-        <span class="summary-label">Ganas</span>
-        <span class="summary-value" style="color:var(--accent)">${money(st.price-costo)}</span>
-      </div>
-    </div>
-
-    <div class="btn-row">
+    <div class="btn-row" style="margin-top:10px">
       <button class="btn btn-primary nudge" onclick="sendQuote()">📨 Enviar cotización</button>
       <button class="btn btn-ghost" onclick="goPanel(0)">🚢 Cambiar agente o renegociar</button>
     </div>
