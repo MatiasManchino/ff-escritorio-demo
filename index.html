@@ -1618,6 +1618,7 @@ function grantTactic(k){
   if(!checkIncidents()) continuarFlujo();
 }
 function showPrizeModal(forcedKey,chooses){
+  if(document.getElementById('prizeModal')) return;   // no apilar
   const d=document.createElement('div');d.className='modal';d.id='prizeModal';
   if(chooses){
     const cards=TACTIC_KEYS.map(k=>`
@@ -2595,7 +2596,8 @@ function acceptLoss(lossPrice){
 }
 
 function showRulesModal(){
-  const d=document.createElement('div');d.className='modal';
+  if(document.getElementById('rulesModal')) return;   // no apilar
+  const d=document.createElement('div');d.className='modal';d.id='rulesModal';
   d.innerHTML=`<div class="modal-box">
     <div class="modal-title">📖 Cómo se juega</div>
     <p style="font-size:14px;color:var(--txt2);line-height:1.7;margin:8px 0">
@@ -2700,6 +2702,7 @@ function submitFeedback(){
 // ═══════════════════════════════════════════════════════════════════════
 
 function showQuoteRequestModal(){
+  if(document.getElementById('quoteRequestModal')) return;   // no apilar
   const d=document.createElement('div');d.className='modal';d.id='quoteRequestModal';
   const st=G.st, c=st.cargo;
   d.innerHTML=`<div class="modal-box center">
