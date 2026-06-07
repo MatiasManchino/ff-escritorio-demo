@@ -1427,21 +1427,44 @@ const ACHIEVEMENTS=[
   {id:"streak5", ic:"⚡", txt:"Racha de 5 sin perder",      cond:G=>G.streak>=5, reward:true},
   {id:"cashHalf",ic:"💰", txt:"Mitad de la meta en caja",   cond:G=>G.cash>=G.goal/2},
 ];
-// Revisa logros nuevos y los festeja. Se llama tras cada acción relevante.
+// Revisa logros nuevos y los encola. Se llama tras cada acción relevante.
+// Los logros se muestran como VENTANA (con Aceptar), uno por vez, y recién
+// DESPUÉS de que se fue el cartel de "Trato cerrado" (no se tapan).
+let _achQueue=[], _achShowing=false;
 function checkAchievements(){
   if(!G||G.over) return;
   for(const a of ACHIEVEMENTS){
     if(!G.achievements[a.id] && a.cond(G)){
       G.achievements[a.id]=true;
-      let extra="";
+      let reward="";
       if(a.reward){                       // las rachas regalan una táctica
         const k=pick(TACTIC_KEYS); G.inv[k]=(G.inv[k]||0)+1;
-        extra="<br><span style='font-size:12px;opacity:.9'>🎁 Bonus: "+TACTIC_EMOJI[k]+" "+TACTIC_NAMES[k]+"</span>";
+        reward=TACTIC_EMOJI[k]+" "+TACTIC_NAMES[k];
       }
-      bigToast(a.ic+" ¡Logro! "+a.txt+extra);
+      _achQueue.push({ic:a.ic, txt:a.txt, reward});
       log("🏅 Logro desbloqueado: "+a.txt);
     }
   }
+  if(_achQueue.length && !_achShowing){
+    _achShowing=true;
+    // Esperar a que el cartel de "Trato cerrado" se vaya (~1,5s) + 0,6s de respiro.
+    setTimeout(showNextAch, 2100);
+  }
+}
+function showNextAch(){
+  const a=_achQueue.shift();
+  if(!a){ _achShowing=false; return; }
+  if(document.getElementById('achModal')){ _achQueue.unshift(a); setTimeout(showNextAch,400); return; }
+  confetti(); playClin();
+  const d=document.createElement('div');d.className='modal';d.id='achModal';
+  d.innerHTML=`<div class="modal-box center">
+    <div class="intro-logo">${a.ic}</div>
+    <div class="modal-title" style="color:var(--accent)">¡Logro desbloqueado!</div>
+    <div style="font-size:16px;font-weight:700;margin:6px 0">${a.txt}</div>
+    ${a.reward?`<div class="note" style="background:var(--good-bg);border:1px solid rgba(74,222,128,0.25);justify-content:center"><span class="note-icon">🎁</span><span>Bonus: <b>${a.reward}</b></span></div>`:''}
+    <button class="modal-close" onclick="this.closest('.modal').remove();showNextAch();">¡Genial! 🎉</button>
+  </div>`;
+  document.body.appendChild(d);
 }
 
 // ── PROGRESIÓN C: NIVEL (deriva de la reputación) ──────────────────────
