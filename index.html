@@ -832,6 +832,15 @@ const PRIZE_EVERY=3;   // cada cuántas cargas cerradas ganás una táctica nuev
 const TACTIC_NAMES={tiempo:"Presión de tiempo",valor:"Argumento de valor",anticipo:"Pago anticipado",
                     farol:"Farol",volumen:"Prometer volumen",prioridad:"Pedir prioridad"};
 const TACTIC_EMOJI={tiempo:"⏱️",valor:"⭐",anticipo:"💵",farol:"🃏",volumen:"📦",prioridad:"⚡"};
+// Descripción corta de cada táctica (para que se entienda qué hace cada una).
+const TACTIC_DESC={
+  tiempo:"\"Los precios suben, cerremos hoy\". Sirve si el cliente está apurado.",
+  valor:"\"Te cuido la carga 24/7\". Sirve si el cliente valora el servicio.",
+  anticipo:"Le das descuento a cambio de que pague al contado.",
+  farol:"Le decís que tenés una oferta más barata para que baje. Puede fallar y enojarlo.",
+  volumen:"Le prometés más cargas a futuro y a cambio te baja la tarifa.",
+  prioridad:"Pedís que tu carga salga primero y segura (cuesta un poco más)."
+};
 const TACTIC_SIDE ={tiempo:"venta",valor:"venta",anticipo:"venta",farol:"compra",volumen:"compra",prioridad:"compra"};
 const TACTIC_KEYS =["tiempo","valor","anticipo","farol","volumen","prioridad"];
 
@@ -1264,7 +1273,7 @@ function openAgentNeg(agentId){
   const yaReservado = G.st.cargo.agentId===agentId && G.st.cargo.costo!=null;
   const startOffer = yaReservado ? G.st.cargo.costo : off.price;
   G.aneg={
-    agentId,offer:startOffer,floor:off.floor,round:0,
+    agentId,offer:startOffer,offer0:startOffer,floor:off.floor,round:0,
     transit:off.transit,validez:off.validez,conf:off.conf,
     plazo:Math.min(G.supplierTerm,a.plazoMax),prioridad:false,
     tactics:{farol:false,volumen:false,prioridad:false},
@@ -1686,7 +1695,8 @@ function tacticBtn(k,fn,used){
   const n=G.inv[k]||0;
   const dis=used||n<=0;
   return `<button class="tactic ${used?'used':''}" onclick="${fn}('${k}')" ${dis?'disabled':''}>`+
-         `${TACTIC_EMOJI[k]} ${TACTIC_NAMES[k]}<span style="display:block;font-size:10px;opacity:.7;margin-top:2px">×${n}</span></button>`;
+         `<span style="font-weight:700">${TACTIC_EMOJI[k]} ${TACTIC_NAMES[k]} <span style="opacity:.6;font-weight:400">×${n}</span></span>`+
+         `<span style="display:block;font-size:11px;opacity:.75;margin-top:3px;font-weight:400;line-height:1.3">${TACTIC_DESC[k]||''}</span></button>`;
 }
 function relWord(r){return r>=80?"Excelente":r>=65?"Buena":r>=45?"Normal":r>=25?"Floja":"Mala";}
 function relColorClass(r){return r>=65?"good":r>=35?"mid":"bad";}
@@ -2322,7 +2332,10 @@ function renderAgenteNeg(){
     </div>
     <div class="story violet">${an.msg}</div>
     <div class="duo">
-      <div class="duo-box"><div class="duo-label">Tarifa</div><div class="duo-value" style="color:var(--violet)">${money(an.offer)}</div></div>
+      <div class="duo-box"><div class="duo-label">Tarifa</div>
+        <div class="duo-value" style="color:var(--violet)">${money(an.offer)}</div>
+        ${an.offer0>an.offer?`<div style="font-size:11px;color:var(--good);margin-top:2px"><span style="text-decoration:line-through;color:var(--muted)">${money(an.offer0)}</span> ↓ bajaste ${money(an.offer0-an.offer)}</div>`:''}
+      </div>
       <div class="duo-box"><div class="duo-label">Transito</div><div class="duo-value">${an.transit}d</div></div>
       <div class="duo-box"><div class="duo-label">Conf.</div><div class="duo-value">${an.conf}%</div></div>
     </div>
