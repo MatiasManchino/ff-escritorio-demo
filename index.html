@@ -1481,10 +1481,12 @@ function showNextAch(){
   confetti(); playClin();
   const d=document.createElement('div');d.className='modal';d.id='achModal';
   d.innerHTML=`<div class="modal-box center">
-    <div class="intro-logo">${a.ic}</div>
-    <div class="modal-title" style="color:var(--accent)">¡Logro desbloqueado!</div>
-    <div style="font-size:16px;font-weight:700;margin:6px 0">${a.txt}</div>
-    ${a.reward?`<div class="note" style="background:var(--good-bg);border:1px solid rgba(74,222,128,0.25);justify-content:center"><span class="note-icon">🎁</span><span>Bonus: <b>${a.reward}</b></span></div>`:''}
+    <div class="goal-banner">
+      <div class="gb-amount" style="font-size:34px">${a.ic}</div>
+      <div class="gb-label">¡LOGRO DESBLOQUEADO!</div>
+      <div class="gb-line" style="font-size:15px;font-weight:700;color:var(--txt);margin-top:4px">${a.txt}</div>
+      ${a.reward?`<div class="gb-sub" style="color:var(--good);font-weight:700;margin-top:6px">🎁 Bonus: ${a.reward}</div>`:''}
+    </div>
     <button class="modal-close" onclick="this.closest('.modal').remove();showNextAch();">¡Genial! 🎉</button>
   </div>`;
   document.body.appendChild(d);
